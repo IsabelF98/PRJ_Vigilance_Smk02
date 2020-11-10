@@ -1,4 +1,4 @@
-# Oct/28/2020 - Javier Gonzalez-Castillo
+# 11/10/2020 - Isabel Fernandez
 #
 # Run @SUMA_Make_Spec_FS in all subjects from dataset DSET01 via swarm
 # This brings the output of running Freesurfer into AFNI's world for use 
@@ -16,12 +16,14 @@
 # This takes approx. 30 mins per subject
 set -e
 
-ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET01/'
-SUBJECTS_DIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/Freesurfer/'
+ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
+SUBJECTS_DIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/Freesurfer/'
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
-subjects=("${subjects[@]/'README'}")
+ubjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
+subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
 num_subjects=`echo "${#subjects[@]} -1" | bc -l`
 echo "Subjects: ${subjects[@]}"
+
 # Create log directory if needed
 if [ ! -d ./SC00b_Freesurfer2AFNI.logs ]; then
    mkdir ./SC00b_Freesurfer2AFNI.logs

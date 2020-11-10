@@ -1,4 +1,4 @@
-# Oct/28/2020 - Javier Gonzalez-Castillo
+# 11/10/2020 - Isabel Fernandez
 #
 # This script will create the pre-processing scripts for DSET01 using
 # afni_proc. This is the maximally pre-processing pipeline, which includes:
@@ -19,8 +19,8 @@ set -e
 
 module load afni
 
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'   # Project directory: includes Scripts, Freesurfer and PrcsData folders
-ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET01/'    # Folder containing the original (un-preprocessed data)
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'   # Project directory: includes Scripts, Freesurfer and PrcsData folders
+ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'    # Folder containing the original (un-preprocessed data)
 SUBJECTS_DIR=` echo ${PRJDIR}/Freesurfer/`           # Folder with Freesurfer results
 
 # Initialize Swarm File
@@ -43,7 +43,8 @@ fi
 # Get list of subjects (assumed @SSwarper scripts have been run)
 # --------------------------------------------------------------
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
-subjects=(${subjects[@]:1})
+subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
+subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
 echo 'Number of subjects: '${#subjects[@]}
 echo 'Subjects: '${subjects[@]}
 
@@ -68,7 +69,7 @@ do
   
   # Create a BRIK/HEAD version of the input data if needed
   if [ ! -e ${INPUT_PATH} ]; then
-     3dcopy ${ORIG_DATA_DIR}/${SBJ}/ses-sleep/func/${SBJ}_ses-sleep_task-spatialattention_bold.nii.gz ${SBJ}_ses-sleep-task-spatatt+orig
+     3dcopy ${ORIG_DATA_DIR}/${SBJ}/ses-1/func/${SBJ}_ses-sleep_task-spatialattention_bold.nii.gz ${SBJ}_ses-sleep-task-spatatt+orig
   fi
   
   # Run afni_proc.py to generate the pre-processing script for this particular run
@@ -92,12 +93,12 @@ do
              -tlrc_NL_warped_dsets   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.nii                       \
                    ${ANAT_PROC_DIR}/anatQQ.${SBJ}.aff12.1D                                    \
                    ${ANAT_PROC_DIR}/anatQQ.${SBJ}_WARP.nii                                    \
-    	     -tshift_opts_ts -tpattern seq-z                                                  \
+    	     -tshift_opts_ts -tpattern seq-z \ # Get rid of                                    
              -volreg_align_to first                                                           \
              -volreg_align_e2a                                                                \
              -volreg_tlrc_warp                                                                \
              -volreg_warp_dxyz 3                                                              \
-             -blur_size 4.0                                                                   \
+             -blur_size 6.0                                                                   \
              -mask_epi_anat yes                                                               \
              -regress_opts_3dD -jobs 32                                                       \
              -regress_motion_per_run                                                          \
@@ -116,7 +117,7 @@ do
              -regress_run_clustsim no                                                         \
              -html_review_style pythonic                                                      \
              -out_dir ${OUT_DIR}                                                              \
-             -script  SC02_Preproc_fMRI.${SBJ}.sh                                  \
+             -script  SC02_Preproc_fMRI.${SBJ}.sh                                             \
     	     -volreg_compute_tsnr yes                                                         \
              -regress_compute_tsnr yes                                                        \
              -regress_make_cbucket yes                                                        \

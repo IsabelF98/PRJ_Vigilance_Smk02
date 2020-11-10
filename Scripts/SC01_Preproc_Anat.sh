@@ -1,5 +1,4 @@
-# Author: Javier Gonzalez-Castillo
-# Date:   November 3rd, 2020
+# 11/10/2020 - Isabel Fernandez
 #
 # This script runs @SSwarper on each individual subjects
 #
@@ -12,8 +11,8 @@
 set -e
 
 module load afni
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'
-ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET01/'
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
+ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
 PRCS_DATA_DIR=`echo ${PRJDIR}/PrcsData`
 
 SBJ_DIR=`echo ${PRCS_DATA_DIR}/${SBJ}`
