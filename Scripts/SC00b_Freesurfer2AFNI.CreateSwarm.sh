@@ -19,7 +19,7 @@ set -e
 ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
 SUBJECTS_DIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/Freesurfer/'
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
-ubjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
+subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
 subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
 num_subjects=`echo "${#subjects[@]} -1" | bc -l`
 echo "Subjects: ${subjects[@]}"
@@ -31,7 +31,7 @@ fi
 
 # Write top comment in CreateSwarm File
 echo "#Creation Date: `date`" > ./SC00b_Freesurfer2AFNI.SWARM.sh
-echo "#swarm -f ./SC00b_Freesurfer2AFNI.SWARM.sh -g 24 -t 24 --partition quick,norm --logdir ./SC00b_Freesurfer2AFNI.logs --module afni" >> ./SC00b_Freesurfer2AFNI.SWARM.sh
+echo "#swarm -f ./SC00b_Freesurfer2AFNI.SWARM.sh -g 24 -t 24 --partition quick,norm --logdir ./SC00b_Freesurfer2AFNI.logs --module afni,freesurfer" >> ./SC00b_Freesurfer2AFNI.SWARM.sh
 
 # Write one entry per subject in CreateSwarm File
 for i in `seq 0 1 ${num_subjects}`

@@ -18,6 +18,7 @@
 set -e
 
 module load afni
+module load jq
 
 PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'   # Project directory: includes Scripts, Freesurfer and PrcsData folders
 ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'    # Folder containing the original (un-preprocessed data)
@@ -45,33 +46,45 @@ fi
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
 subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
 subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
-echo 'Number of subjects: '${#subjects[@]}
-echo 'Subjects: '${subjects[@]}
+#echo 'Number of subjects: '${#subjects[@]}
+#echo 'Subjects: '${subjects[@]}
+#echo ' '
 
+# Get list of data names
+# ----------------------
+data_types=(SleepAscending SleepDescending SleepRSER WakeAscending WakeDescending WakeRSER)
 
-# Run afni_proc for each subject
+# Copy and process all fMRI data
+# ------------------------------
 for SBJ in ${subjects[@]}
 do
   ANAT_PROC_DIR=`echo ${PRJDIR}PrcsData/${SBJ}/D01_Anatomical`
   FMRI_ORIG_DIR=`echo ${PRJDIR}PrcsData/${SBJ}/D00_OriginalData`
   OUT_DIR=`echo ${PRJDIR}/PrcsData/${SBJ}/D02_Preproc_fMRI`
-  INPUT_PATH=`echo ${FMRI_ORIG_DIR}/${SBJ}_ses-sleep-task-spatatt+orig.HEAD`
   
-  # Create D00_OriginalData Directory if needed
+  # Create D00_OriginalData if needed
   if [ ! -d ${FMRI_ORIG_DIR} ]; then
-     echo "++ ERROR: Input Direcotry is missing: ${FMRI_ORIG_DIR}"
-     echo " +        Program will exit."
-     exit
+     mkdir ${FMRI_ORIG_DIR}
   fi
   
-  # Enter D00_OriginalData folder
+  # Empty list of data paths
+  DATA_PATHS=''
+  
+  for suffix in ${data_types[@]}
+  do
+     if [ -f "${ORIG_DATA_DIR}/${SBJ}/ses-1/func/${SBJ}_ses-1_task-${suffix}_bold.nii" ]; then
+       # Copy data to D00_OriginalData in BRIK/HEAD format
+       3dcopy -overwrite ${ORIG_DATA_DIR}/${SBJ}/ses-1/func/${SBJ}_ses-1_task-${suffix}_bold.nii ${FMRI_ORIG_DIR}/${SBJ}_${suffix}+orig
+       # Add new path to list
+       DATA_PATHS=`echo $DATA_PATHS ${FMRI_ORIG_DIR}/${SBJ}_${suffix}+orig`
+       # Change slice time in .nii file header
+       slice_timing=`jq '.SliceTiming' ${ORIG_DATA_DIR}/${SBJ}/ses-1/func/${SBJ}_ses-1_task-${suffix}_bold.json | awk '{print $1}' | sed '/]/d' | sed '/\[/d' | tr -s '\n' ' '`
+       3drefit -Tslices $slice_timing ${FMRI_ORIG_DIR}/${SBJ}_${suffix}+orig
+       3dinfo -slice_timing ${FMRI_ORIG_DIR}/${SBJ}_${suffix}+orig
+    fi
+  done
+  
   cd ${FMRI_ORIG_DIR}
-  
-  # Create a BRIK/HEAD version of the input data if needed
-  if [ ! -e ${INPUT_PATH} ]; then
-     3dcopy ${ORIG_DATA_DIR}/${SBJ}/ses-1/func/${SBJ}_ses-sleep_task-spatialattention_bold.nii.gz ${SBJ}_ses-sleep-task-spatatt+orig
-  fi
-  
   # Run afni_proc.py to generate the pre-processing script for this particular run
   afni_proc.py                                                                                \
              -subj_id ${SBJ}                                                                  \
@@ -86,14 +99,13 @@ do
              -anat_follower_ROI FSWe   epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/fs_ap_wm.nii.gz       \
              -anat_follower_erode FSvent FSWe                                                 \
              -tcat_remove_first_trs 5                                                         \
-             -dsets ${INPUT_PATH}                                                             \
+             -dsets $DATA_PATHS                                                               \
              -align_opts_aea -cost lpc+ZZ -giant_move -check_flip                             \
              -tlrc_base MNI152_2009_template_SSW.nii.gz                                       \
              -tlrc_NL_warp                                                                    \
              -tlrc_NL_warped_dsets   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.nii                       \
                    ${ANAT_PROC_DIR}/anatQQ.${SBJ}.aff12.1D                                    \
                    ${ANAT_PROC_DIR}/anatQQ.${SBJ}_WARP.nii                                    \
-    	     -tshift_opts_ts -tpattern seq-z \ # Get rid of                                    
              -volreg_align_to first                                                           \
              -volreg_align_e2a                                                                \
              -volreg_tlrc_warp                                                                \
@@ -118,15 +130,15 @@ do
              -html_review_style pythonic                                                      \
              -out_dir ${OUT_DIR}                                                              \
              -script  SC02_Preproc_fMRI.${SBJ}.sh                                             \
-    	     -volreg_compute_tsnr yes                                                         \
+             -volreg_compute_tsnr yes                                                         \
              -regress_compute_tsnr yes                                                        \
              -regress_make_cbucket yes                                                        \
-             -scr_overwrite                                         
+             -scr_overwrite
   
   # Make correction to created script: use linear interpolation instead of zeros for censored datapoints
   # I need to do this post-hoc becuase afni_proc does not seem to have an option for this. 
   sed -i 's/-cenmode ZERO/-cenmode NTRP/g' SC02_Preproc_fMRI.${SBJ}.sh
-
+   
   # Move newly created processing script to the scripts folder for this step.
   mv ${FMRI_ORIG_DIR}/SC02_Preproc_fMRI.${SBJ}.sh ${PRJDIR}/Scripts/SC02_Preproc_fMRI/
 

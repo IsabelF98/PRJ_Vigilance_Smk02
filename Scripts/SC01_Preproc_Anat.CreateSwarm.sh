@@ -20,9 +20,15 @@ set -e
 ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
 
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
-ubjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
+subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
 subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
 num_subjects=`echo "${#subjects[@]} -1" | bc -l`
+
+# Create Pre directory if needed
+# ------------------------------------
+if [ ! -d ../PrcsData ]; then
+   mkdir ../PrcsData
+fi
 
 echo "Subjects: ${subjects[@]}"
 echo "#Creation Date: `date`" > ./SC01_Preproc_Anat.SWARM.sh
