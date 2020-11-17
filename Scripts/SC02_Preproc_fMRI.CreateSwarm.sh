@@ -27,7 +27,7 @@ SUBJECTS_DIR=` echo ${PRJDIR}/Freesurfer/`           # Folder with Freesurfer re
 # Initialize Swarm File
 # ---------------------
 echo "#Creation Time: `date`" > ./SC02_Preproc_fMRI.SWARM.sh
-echo "#swarm -f ./SC02_Preproc_fMRI.SWARM.sh -g 32 -t 32 --time 24:00:00 --logdir ./SC02_Preproc_fMRI.logs" >> ./SC02_Preproc_fMRI.SWARM.sh
+echo "#swarm -f ./SC02_Preproc_fMRI.SWARM.sh -g 32 -t 32 --time 24:00:00 --module afni --logdir ./SC02_Preproc_fMRI.logs --sbatch \"--export AFNI_COMPRESSOR=GZIP\"" >> ./SC02_Preproc_fMRI.SWARM.sh
 
 # Create log directory if needed (for swarm files)
 # ------------------------------------------------
@@ -86,53 +86,53 @@ do
   
   cd ${FMRI_ORIG_DIR}
   # Run afni_proc.py to generate the pre-processing script for this particular run
-  afni_proc.py                                                                                \
-             -subj_id ${SBJ}                                                                  \
-             -blocks despike tshift align tlrc volreg blur mask scale regress                 \
-             -radial_correlate_blocks tcat volreg                                             \
-             -copy_anat ${ANAT_PROC_DIR}/anatSS.${SBJ}.nii                                    \
-             -anat_has_skull no                                                               \
-             -anat_follower anat_w_skull anat ${ANAT_PROC_DIR}/anatUAC.${SBJ}.nii             \
-             -anat_follower_ROI aaseg  anat ${SUBJECTS_DIR}/${SBJ}/SUMA/aparc.a2009s+aseg.nii \
-             -anat_follower_ROI aeseg  epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/aparc.a2009s+aseg.nii \
-             -anat_follower_ROI FSvent epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/fs_ap_latvent.nii.gz  \
-             -anat_follower_ROI FSWe   epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/fs_ap_wm.nii.gz       \
-             -anat_follower_erode FSvent FSWe                                                 \
-             -tcat_remove_first_trs 5                                                         \
-             -dsets $DATA_PATHS                                                               \
-             -align_opts_aea -cost lpc+ZZ -giant_move -check_flip                             \
-             -tlrc_base MNI152_2009_template_SSW.nii.gz                                       \
-             -tlrc_NL_warp                                                                    \
-             -tlrc_NL_warped_dsets   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.nii                       \
-                   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.aff12.1D                                    \
-                   ${ANAT_PROC_DIR}/anatQQ.${SBJ}_WARP.nii                                    \
-             -volreg_align_to first                                                           \
-             -volreg_align_e2a                                                                \
-             -volreg_tlrc_warp                                                                \
-             -volreg_warp_dxyz 3                                                              \
-             -blur_size 6.0                                                                   \
-             -mask_epi_anat yes                                                               \
-             -regress_opts_3dD -jobs 32                                                       \
-             -regress_motion_per_run                                                          \
-             -regress_ROI_PC FSvent 3                                                         \
-             -regress_ROI_PC_per_run FSvent                                                   \
-             -regress_make_corr_vols aeseg FSvent                                             \
-             -regress_anaticor_fast                                                           \
-             -regress_anaticor_label FSWe                                                     \
-             -regress_censor_motion 0.25                                                      \
-             -regress_censor_outliers 0.05                                                    \
-             -regress_apply_mot_types demean deriv                                            \
-             -regress_est_blur_epits                                                          \
-             -regress_est_blur_errts                                                          \
-             -regress_bandpass 0.01 0.1                                                       \
-             -regress_polort 5                                                                \
-             -regress_run_clustsim no                                                         \
-             -html_review_style pythonic                                                      \
-             -out_dir ${OUT_DIR}                                                              \
-             -script  SC02_Preproc_fMRI.${SBJ}.sh                                             \
-             -volreg_compute_tsnr yes                                                         \
-             -regress_compute_tsnr yes                                                        \
-             -regress_make_cbucket yes                                                        \
+  afni_proc.py                                                                                   \
+             -subj_id ${SBJ}                                                                     \
+             -blocks despike tshift align tlrc volreg blur mask scale regress                    \
+             -radial_correlate_blocks tcat volreg                                                \
+             -copy_anat ${ANAT_PROC_DIR}/anatSS.${SBJ}.nii.gz                                    \
+             -anat_has_skull no                                                                  \
+             -anat_follower anat_w_skull anat ${ANAT_PROC_DIR}/anatUAC.${SBJ}.nii.gz             \
+             -anat_follower_ROI aaseg  anat ${SUBJECTS_DIR}/${SBJ}/SUMA/aparc.a2009s+aseg.nii.gz \
+             -anat_follower_ROI aeseg  epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/aparc.a2009s+aseg.nii.gz \
+             -anat_follower_ROI FSvent epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/fs_ap_latvent.nii.gz     \
+             -anat_follower_ROI FSWe   epi  ${SUBJECTS_DIR}/${SBJ}/SUMA/fs_ap_wm.nii.gz          \
+             -anat_follower_erode FSvent FSWe                                                    \
+             -tcat_remove_first_trs 5                                                            \
+             -dsets $DATA_PATHS                                                                  \
+             -align_opts_aea -cost lpc+ZZ -giant_move -check_flip                                \
+             -tlrc_base MNI152_2009_template_SSW.nii.gz                                          \
+             -tlrc_NL_warp                                                                       \
+             -tlrc_NL_warped_dsets   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.nii.gz                       \
+                   ${ANAT_PROC_DIR}/anatQQ.${SBJ}.aff12.1D                                       \
+                   ${ANAT_PROC_DIR}/anatQQ.${SBJ}_WARP.nii.gz                                    \
+             -volreg_align_to first                                                              \
+             -volreg_align_e2a                                                                   \
+             -volreg_tlrc_warp                                                                   \
+             -volreg_warp_dxyz 3                                                                 \
+             -blur_size 6.0                                                                      \
+             -mask_epi_anat yes                                                                  \
+             -regress_opts_3dD -jobs 32                                                          \
+             -regress_motion_per_run                                                             \
+             -regress_ROI_PC FSvent 3                                                            \
+             -regress_ROI_PC_per_run FSvent                                                      \
+             -regress_make_corr_vols aeseg FSvent                                                \
+             -regress_anaticor_fast                                                              \
+             -regress_anaticor_label FSWe                                                        \
+             -regress_censor_motion 0.25                                                         \
+             -regress_censor_outliers 0.05                                                       \
+             -regress_apply_mot_types demean deriv                                               \
+             -regress_est_blur_epits                                                             \
+             -regress_est_blur_errts                                                             \
+             -regress_bandpass 0.01 0.1                                                          \
+             -regress_polort 5                                                                   \
+             -regress_run_clustsim no                                                            \
+             -html_review_style pythonic                                                         \
+             -out_dir ${OUT_DIR}                                                                 \
+             -script  SC02_Preproc_fMRI.${SBJ}.sh                                                \
+             -volreg_compute_tsnr yes                                                            \
+             -regress_compute_tsnr yes                                                           \
+             -regress_make_cbucket yes                                                           \
              -scr_overwrite
   
   # Make correction to created script: use linear interpolation instead of zeros for censored datapoints
