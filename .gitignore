@@ -1,0 +1,5 @@
+*ipynb_checkpoints*
+Freesurfer/
+PrcsData/
+TEST/
+*.logs
