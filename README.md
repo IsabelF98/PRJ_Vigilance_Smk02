@@ -1,6 +1,6 @@
-# Vigilance - Samika's DSET 01
+# Vigilance - Samika's Data Set 2
 
-This repository containst scripts to process Samika's DSET 1. 
+This repository containst scripts to process Samika's data set 2. 
 
 ## Anatomical Processing
 
