@@ -3,3 +3,4 @@ Freesurfer/
 PrcsData/
 TEST/
 *.logs
+*.SWARM.sh
