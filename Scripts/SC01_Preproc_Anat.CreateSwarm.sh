@@ -32,7 +32,7 @@ fi
 
 echo "Subjects: ${subjects[@]}"
 echo "#Creation Date: `date`" > ./SC01_Preproc_Anat.SWARM.sh
-echo "#swarm -f ./SC01_Preproc_Anat.SWARM.sh -g 32 -t 32 --partition quick,norm --logdir ./SC01_Preproc_Anat.logs" > ./SC01_Preproc_Anat.SWARM.sh
+echo "#swarm -f ./SC01_Preproc_Anat.SWARM.sh -g 32 -t 32 --partition quick,norm --module afni --logdir ./SC01_Preproc_Anat.logs \"--export AFNI_COMPRESSOR=GZIP\"" > ./SC01_Preproc_Anat.SWARM.sh
 for i in `seq 0 1 ${num_subjects}`
 do
   if [ ! -z ${subjects[i]} ]; then

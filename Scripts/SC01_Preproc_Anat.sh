@@ -10,7 +10,6 @@
 
 set -e
 
-module load afni
 PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
 PRCS_DATA_DIR=`echo ${PRJDIR}/PrcsData`

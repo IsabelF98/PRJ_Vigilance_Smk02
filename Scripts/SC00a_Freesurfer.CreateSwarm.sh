@@ -39,7 +39,7 @@ fi
 # Write top comment in Swarm file 
 # -------------------------------
 echo "#Creation Date: `date`" > ./SC00a_Freesurfer.SWARM.sh
-echo "#swarm -f ./SC00a_Freesurfer.SWARM.sh -g 24 -t 24 --time 48:00:00 --logdir ./SC00a_Freesurfer.logs --module freesurfer --sbatch \"--export SUBJECTS_DIR=/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/Freesurfer/\"" >> ./SC00a_Freesurfer.SWARM.sh
+echo "#swarm -f ./SC00a_Freesurfer.SWARM.sh -g 24 -t 24 --time 48:00:00 --logdir ./SC00a_Freesurfer.logs --module freesurfer --sbatch \"--export SUBJECTS_DIR=/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/Freesurfer/ AFNI_COMPRESSOR=GZIP\"" >> ./SC00a_Freesurfer.SWARM.sh
 # Write one entry per subject in Swarm file
 for i in `seq 0 1 ${num_subjects}`
 do
