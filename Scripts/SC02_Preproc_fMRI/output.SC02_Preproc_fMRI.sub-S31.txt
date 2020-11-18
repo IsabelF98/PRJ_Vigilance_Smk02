@@ -3422,3 +3422,64 @@ end
 if ( 0 != 0 ) then
 1d_tool.py -show_cormat_warnings -infile X.xmat.1D
 tee out.cormat_warn.txt
+-- no warnings for correlation matrix (cut = 0.400) --
+tee out.df_info.txt
+1d_tool.py -show_df_info -infile X.xmat.1D
+
+initial DF                   : 2238 : 100.0%
+
+DF used for regs of interest :    0 :   0.0%
+DF used for censoring        :  141 :   6.3%
+DF used for polort           :   36 :   1.6%
+DF used for motion           :   72 :   3.2%
+DF used for ROIPC            :   18 :   0.8%
+DF used for bandpass         : 1416 :  63.3%
+total DF used                : 1683 :  75.2%
+
+final DF                     :  555 :  24.8%
+
+3dTcat -prefix all_runs.sub-S31 pb05.sub-S31.r01.scale+tlrc.HEAD pb05.sub-S31.r02.scale+tlrc.HEAD pb05.sub-S31.r03.scale+tlrc.HEAD pb05.sub-S31.r04.scale+tlrc.HEAD pb05.sub-S31.r05.scale+tlrc.HEAD pb05.sub-S31.r06.scale+tlrc.HEAD
+++ 3dTcat: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ elapsed time = 406.8 s
+3dTcat -prefix rm.all_runs.volreg pb03.sub-S31.r01.volreg+tlrc.HEAD pb03.sub-S31.r02.volreg+tlrc.HEAD pb03.sub-S31.r03.volreg+tlrc.HEAD pb03.sub-S31.r04.volreg+tlrc.HEAD pb03.sub-S31.r05.volreg+tlrc.HEAD pb03.sub-S31.r06.volreg+tlrc.HEAD
+++ 3dTcat: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ elapsed time = 470.6 s
+3dcalc -a rm.all_runs.volreg+tlrc -b follow_ROI_FSWe+tlrc -expr a*bool(b) -datum float -prefix rm.all_runs.volreg.mask
+++ 3dcalc: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ Authored by: A cast of thousands
+3dmerge -1blur_fwhm 60 -doall -prefix Local_FSWe_rall rm.all_runs.volreg.mask+tlrc
+++ 3dmerge: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ default -1dindex = 0
+++ default -1tindex = 1
+Program 3dmerge 
+3dmerge: edit and combine 3D datasets, by RW Cox
+++ editing input dataset in memory (2657.6 MB)
+..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+-- Wrote edited dataset: ./Local_FSWe_rall+tlrc.BRIK
+
+3dcalc -a follow_ROI_FSWe+tlrc -expr a -datum float -prefix rm.mask.anaticor.float
+++ 3dcalc: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ Authored by: A cast of thousands
+3dmerge -1blur_fwhm 60 -doall -prefix fanaticor_mask_coverage rm.mask.anaticor.float+tlrc
+++ 3dmerge: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ default -1dindex = 0
+++ default -1tindex = 1
+Program 3dmerge 
+3dmerge: edit and combine 3D datasets, by RW Cox
+++ editing input dataset in memory (1.2 MB)
+.
+-- Wrote edited dataset: ./fanaticor_mask_coverage+tlrc.BRIK
+
+3dTproject -polort 0 -input pb05.sub-S31.r01.scale+tlrc.HEAD pb05.sub-S31.r02.scale+tlrc.HEAD pb05.sub-S31.r03.scale+tlrc.HEAD pb05.sub-S31.r04.scale+tlrc.HEAD pb05.sub-S31.r05.scale+tlrc.HEAD pb05.sub-S31.r06.scale+tlrc.HEAD -censor censor_sub-S31_combined_2.1D -cenmode NTRP -dsort Local_FSWe_rall+tlrc -ort X.nocensor.xmat.1D -prefix errts.sub-S31.fanaticor
+++ 3dTproject: AFNI version=AFNI_20.3.02 (Nov 12 2020) [64-bit]
+++ Authored by: Cox the Algebraic (Linear)
+++ have 6 input dataset names
+++ Auto-catenated dataset has 6 runs
+++ input time points = 2238 ; censored = 141 ; remaining = 2097
+++ Setting up regressors
+++ 6 Blocks * 1 polynomials -- 6 polort regressors
+ + -- 1542 other fixed ort regressors
+ + -- 1 voxel-wise dsort regressors
+++ 2097 retained time points MINUS 1549 regressors ==> 548 D.O.F. left
+++ no -mask option ==> processing all 311296 voxels in dataset
+++ Compute pseudo-inverse of fixed orts
