@@ -27,7 +27,7 @@ SUBJECTS_DIR=` echo ${PRJDIR}/Freesurfer/`           # Folder with Freesurfer re
 # Initialize Swarm File
 # ---------------------
 echo "#Creation Time: `date`" > ./SC02_Preproc_fMRI.SWARM.sh
-echo "#swarm -f ./SC02_Preproc_fMRI.SWARM.sh -g 32 -t 32 --time 24:00:00 --module afni --logdir ./SC02_Preproc_fMRI.logs --sbatch \"--export AFNI_COMPRESSOR=GZIP\"" >> ./SC02_Preproc_fMRI.SWARM.sh
+echo "#swarm -f ./SC02_Preproc_fMRI.SWARM.sh -g 32 -t 32 --time 48:00:00 --module afni --logdir ./SC02_Preproc_fMRI.logs --sbatch \"--export AFNI_COMPRESSOR=GZIP\"" >> ./SC02_Preproc_fMRI.SWARM.sh
 
 # Create log directory if needed (for swarm files)
 # ------------------------------------------------
@@ -46,9 +46,6 @@ fi
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
 subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
 subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file. This is not a subject ID.
-#echo 'Number of subjects: '${#subjects[@]}
-#echo 'Subjects: '${subjects[@]}
-#echo ' '
 
 # Get list of data names
 # ----------------------
@@ -83,6 +80,13 @@ do
        3dinfo -slice_timing ${FMRI_ORIG_DIR}/${SBJ}_${suffix}+orig
     fi
   done
+  
+  # Only processing SleepAscending, SleepDescending, and SleepRSER for subject 12 since wake data is not comlete
+  if [ ${SBJ} = 'sub-S12' ]; then
+      DATA_PATHS=`echo ${FMRI_ORIG_DIR}/${SBJ}_SleepAscending+orig ${FMRI_ORIG_DIR}/${SBJ}_SleepDescending+orig ${FMRI_ORIG_DIR}/${SBJ}_SleepRSER+orig`
+  fi
+  
+  echo ${DATA_PATHS[@]}
   
   cd ${FMRI_ORIG_DIR}
   # Run afni_proc.py to generate the pre-processing script for this particular run
