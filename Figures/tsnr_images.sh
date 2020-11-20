@@ -27,14 +27,21 @@ do
          -com "SWITCH_UNDERLAY A.anat_final.${SBJ}.cropped" \
          -com "SWITCH_OVERLAY A.TSNR.${SBJ}" \
          -com "SET_DICOM_XYZ A -1.0 17.0 17.0 J" \
-         -com "SET_PBAR_ALL A.+99 130.0 Spectrum:red_to_blue" \
-         -com "SAVE_JPEG A.axialimage ${SBJ}_TSNR_orig_130.jpg" \
+         -com "SET_PBAR_ALL A.+99 550.0 Spectrum:red_to_blue" \
+         -com "SAVE_JPEG A.axialimage ${SBJ}_TSNR_orig_550.jpg" \
          -com "OPEN_WINDOW B.axialimage mont=7x1:10" \
          -com "SWITCH_UNDERLAY B.anat_final.${SBJ}.cropped" \
          -com "SWITCH_OVERLAY B.TSNR.vreg.r01.${SBJ}" \
          -com "SET_DICOM_XYZ B -1.0 17.0 17.0 J" \
-         -com "SET_PBAR_ALL B.+99 130.0 Spectrum:red_to_blue" \
-         -com "SAVE_JPEG B.axialimage ${SBJ}_TSNR_vreg_130.jpg" \
+         -com "SET_PBAR_ALL B.+99 150.0 Spectrum:red_to_blue" \
+         -com "SAVE_JPEG B.axialimage ${SBJ}_TSNR_vreg_150.jpg" \
          -com "QUIT" \
          anat_final.${SBJ}.cropped+tlrc TSNR.${SBJ}+tlrc TSNR.vreg.r01.${SBJ}+tlrc
 done
+
+#-com "OPEN_WINDOW B.axialimage mont=7x1:10" \
+#         -com "SWITCH_UNDERLAY B.anat_final.${SBJ}.cropped" \
+#         -com "SWITCH_OVERLAY B.TSNR.vreg.r01.${SBJ}" \
+#         -com "SET_DICOM_XYZ B -1.0 17.0 17.0 J" \
+#         -com "SET_PBAR_ALL B.+99 150.0 Spectrum:red_to_blue" \
+#         -com "SAVE_JPEG B.axialimage ${SBJ}_TSNR_vreg_150.jpg" \
