@@ -1,11 +1,12 @@
-# Oct/30/2020 - Javier Gonzalez-Castillo
+# 11/23/2020 - Isabel Fernandez
 #
 set -e
 
-ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET01/'
+ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/'
 subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`)
-subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file. This is not a subject ID.
-num_subjects=`echo "${#subjects[@]} -1" | bc -l`
+subjects=("${subjects[@]/'README'}") # The subject directory contains a README file. This is not a subject ID.
+subjects=("${subjects[@]/'dataset_description.json'}") # The subject directory contains a json file. This is not a subject ID.
+subjects=("${subjects[@]/'sub-S21'}") # This subject had bad motion and will not be used.
 echo "Subjects: ${subjects[@]}"
 
 # Create log directory if needed

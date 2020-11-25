@@ -1,11 +1,10 @@
-# Author: Javier Gonzalez-Castillo
-# Creation Date: October 30th, 2020
+# 11/23/2020 - Isabel Fernandez
 #
-# This script creates a FB mask common to all subjects in DSET01. This mask will used in later
+# This script creates a FB mask common to all subjects in DSET02. This mask will used in later
 # stages of the analysis to only select ROIs with valid voxels in all subjects
 
 set -e
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 STD_THRESHOLD=2
 cd ${PRJDIR}/PrcsData/${SBJ}/D02_Preproc_fMRI
 echo "++ INFO: working dir: `pwd`"
