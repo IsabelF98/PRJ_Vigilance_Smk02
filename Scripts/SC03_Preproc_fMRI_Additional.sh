@@ -1,9 +1,4 @@
-# TO DO:
-# 1. edit script to remove files
-# 2. edit scripts to concatinate bandpass and motion regressos (only once)
-# 3. change all output file names to .test (IMPORTANT)
-# 3. run with concatinated files instead of 6
-# 4. compare using diff, 3dcalc (subtract), and afni graph
+# 11/24/2020 - Isabel Fernandez
 
 #!/bin/bash
 
@@ -15,11 +10,16 @@ cd /data/SFIM_Vigilance/PRJ_Vigilance_Smk02/PrcsData/${SBJ}/D02_Preproc_fMRI
 # ==========================================================================
 TR=`3dinfo -tr errts.${SBJ}.fanaticor+tlrc | awk '{print $0}'`
 tr_counts=(`3dinfo -nt pb05.${SBJ}.r0?.scale+tlrc.HEAD | awk '{print $1}' | tr -s '\n' ' '`)
-runs=(`count -digits 1 1 ${#tr_counts[@]}`)
+runs=(`count -digits 2 1 ${#tr_counts[@]}`)
 
 echo "TR: " $TR
 echo "Counts per run: " ${tr_counts[@]}
 echo "Number of runs: " ${runs[@]}
+
+# Concatinate physiological noise and motion corection files
+1dcat ROIPC.FSvent.r*.1D > ROIPC.FSvent.rall.1D
+1dcat mot_demean.r*.1D > mot_demean.rall.1D
+1dcat mot_deriv.r*.1D > mot_deriv.rall.1D
 
 # 3.1) WL = 60s ==> 30 time-points per window
 # -------------------------------------------
@@ -34,42 +34,20 @@ do
     1dBport -nodata $nt $TR -band 0.017 0.18 -invert -nozero > rm.bandpass.wl060s.1D
     1d_tool.py -overwrite -infile rm.bandpass.wl060s.1D -pad_into_many_runs $run ${#runs[@]} \
                -set_run_lengths ${tr_counts[@]} \
-               -write rm.bandpass.r0$run.wl060s.1D
+               -write rm.bandpass.r${runs[i]}.wl060s.1D
     rm rm.bandpass.wl060s.1D
-    # Creating and padding regressors for physiological noise correction
-    1d_tool.py -overwrite -infile ROIPC.FSvent.r0$run.1D -pad_into_many_runs $run ${#runs[@]} \
-               -set_run_lengths ${tr_counts[@]} \
-               -write rm.ROIPC.FSvent.r0$run.padded.1D
 done
 
 1dcat rm.bandpass.r*.wl060s.1D > bandpass_rall.wl060s.1D
 rm rm.bandpass.r*.wl060s.1D
 
-1dcat rm.ROIPC.FSvent.r*.padded.1D > ROIPC.FSvent.rall.1D
-rm rm.ROIPC.FSvent.r*.padded.1D
 
 3dDeconvolve -overwrite -input pb05.${SBJ}.r*.scale+tlrc.HEAD              \
     -censor censor_${SBJ}_combined_2.1D                                    \
     -ortvec bandpass_rall.wl060s.1D bandpass                               \
-    -ortvec ROIPC.FSvent.rall.1D \
-    -ortvec ROIPC.FSvent.r01.1D ROIPC.FSvent.r01                           \
-    -ortvec ROIPC.FSvent.r02.1D ROIPC.FSvent.r02                           \
-    -ortvec ROIPC.FSvent.r03.1D ROIPC.FSvent.r03                           \
-    -ortvec ROIPC.FSvent.r04.1D ROIPC.FSvent.r04                           \
-    -ortvec ROIPC.FSvent.r05.1D ROIPC.FSvent.r05                           \
-    -ortvec ROIPC.FSvent.r06.1D ROIPC.FSvent.r06                           \
-    -ortvec mot_demean.r01.1D mot_demean_r01                               \
-    -ortvec mot_demean.r02.1D mot_demean_r02                               \
-    -ortvec mot_demean.r03.1D mot_demean_r03                               \
-    -ortvec mot_demean.r04.1D mot_demean_r04                               \
-    -ortvec mot_demean.r05.1D mot_demean_r05                               \
-    -ortvec mot_demean.r06.1D mot_demean_r06                               \
-    -ortvec mot_deriv.r01.1D mot_deriv_r01                                 \
-    -ortvec mot_deriv.r02.1D mot_deriv_r02                                 \
-    -ortvec mot_deriv.r03.1D mot_deriv_r03                                 \
-    -ortvec mot_deriv.r04.1D mot_deriv_r04                                 \
-    -ortvec mot_deriv.r05.1D mot_deriv_r05                                 \
-    -ortvec mot_deriv.r06.1D mot_deriv_r06                                 \
+    -ortvec ROIPC.FSvent.rall.1D ROIPC.FSvent.rall                         \
+    -ortvec mot_demean.rall.1D mot_demean_rall                             \
+    -ortvec mot_deriv.rall.1D mot_deriv_rall                               \
     -polort 5                                                              \
     -num_stimts 0                                                          \
     -jobs 32                                                               \
@@ -105,37 +83,24 @@ rm rm.ROIPC.FSvent.r*.padded.1D
 # make separate regressors per run, with all in one file
 for (( i=0; i<${#runs[@]}; i++ ))
 do
-    let nt= ${tr_counts[i]}
-    let run= ${runs[i]}
-    1dBport -nodata $nt $TR -band 0.022 0.18 -invert -nozero > bandpass.wl046s.1D
-    1d_tool.py -overwrite -infile bandpass.wl046s.1D -pad_into_many_runs $run ${#runs[@]} \
-               --set_run_lengths ${tr_counts[@]} \
-               -write bandpass.r0$run.wl046s.1D
+    let nt=${tr_counts[i]}
+    let run=${runs[i]}
+    1dBport -nodata $nt $TR -band 0.022 0.18 -invert -nozero > rm.bandpass.wl046s.1D
+    1d_tool.py -overwrite -infile rm.bandpass.wl046s.1D -pad_into_many_runs $run ${#runs[@]} \
+               -set_run_lengths ${tr_counts[@]} \
+               -write rm.bandpass.r${runs[i]}.wl046s.1D
+    rm rm.bandpass.wl046s.1D
 done
 
-1dcat bandpass.r*.wl046s.1D > bandpass_rall.wl046s.1D
+1dcat rm.bandpass.r*.wl046s.1D > bandpass_rall.wl046s.1D
+rm rm.bandpass.r*.wl046s.1D
 
 3dDeconvolve -overwrite -input pb05.${SBJ}.r*.scale+tlrc.HEAD            \
     -censor censor_${SBJ}_combined_2.1D                                  \
     -ortvec bandpass_rall.wl046s.1D bandpass                             \
-    -ortvec ROIPC.FSvent.r01.1D ROIPC.FSvent.r01                         \
-    -ortvec ROIPC.FSvent.r02.1D ROIPC.FSvent.r02                         \
-    -ortvec ROIPC.FSvent.r03.1D ROIPC.FSvent.r03                         \
-    -ortvec ROIPC.FSvent.r04.1D ROIPC.FSvent.r04                         \
-    -ortvec ROIPC.FSvent.r05.1D ROIPC.FSvent.r05                         \
-    -ortvec ROIPC.FSvent.r06.1D ROIPC.FSvent.r06                         \
-    -ortvec mot_demean.r01.1D mot_demean_r01                             \
-    -ortvec mot_demean.r02.1D mot_demean_r02                             \
-    -ortvec mot_demean.r03.1D mot_demean_r03                             \
-    -ortvec mot_demean.r04.1D mot_demean_r04                             \
-    -ortvec mot_demean.r05.1D mot_demean_r05                             \
-    -ortvec mot_demean.r06.1D mot_demean_r06                             \
-    -ortvec mot_deriv.r01.1D mot_deriv_r01                               \
-    -ortvec mot_deriv.r02.1D mot_deriv_r02                               \
-    -ortvec mot_deriv.r03.1D mot_deriv_r03                               \
-    -ortvec mot_deriv.r04.1D mot_deriv_r04                               \
-    -ortvec mot_deriv.r05.1D mot_deriv_r05                               \
-    -ortvec mot_deriv.r06.1D mot_deriv_r06                               \
+    -ortvec ROIPC.FSvent.rall.1D ROIPC.FSvent.rall                       \
+    -ortvec mot_demean.rall.1D mot_demean_rall                           \
+    -ortvec mot_deriv.rall.1D mot_deriv_rall                             \
     -polort 5                                                            \
     -num_stimts 0                                                        \
     -jobs 32                                                             \
@@ -173,35 +138,22 @@ for (( i=0; i<${#runs[@]}; i++ ))
 do
     let nt=${tr_counts[i]}
     let run=${runs[i]}
-    1dBport -nodata $nt $TR -band 0.033 0.18 -invert -nozero >! bandpass.wl030s.1D
-    1d_tool.py -overwrite -infile bandpass.wl030s.1D -pad_into_many_runs $run ${#runs[@]} \
+    1dBport -nodata $nt $TR -band 0.033 0.18 -invert -nozero > rm.bandpass.wl030s.1D
+    1d_tool.py -overwrite -infile rm.bandpass.wl030s.1D -pad_into_many_runs $run ${#runs[@]} \
                -set_run_lengths ${tr_counts[@]} \
-               -write bandpass.r0$run.wl030s.1D
+               -write rm.bandpass.r${runs[i]}.wl030s.1D
+    rm rm.bandpass.wl030s.1D
 done
 
-1dcat bandpass.r*.wl030s.1D > bandpass_rall.wl030s.1D
+1dcat rm.bandpass.r*.wl030s.1D > bandpass_rall.wl030s.1D
+rm rm.bandpass.r*.wl030s.1D
 
 3dDeconvolve -overwrite -input pb05.${SBJ}.r*.scale+tlrc.HEAD             \
     -censor censor_${SBJ}_combined_2.1D                                   \
     -ortvec bandpass_rall.wl030s.1D bandpass                              \
-    -ortvec ROIPC.FSvent.r01.1D ROIPC.FSvent.r01                          \
-    -ortvec ROIPC.FSvent.r02.1D ROIPC.FSvent.r02                          \
-    -ortvec ROIPC.FSvent.r03.1D ROIPC.FSvent.r03                          \
-    -ortvec ROIPC.FSvent.r04.1D ROIPC.FSvent.r04                          \
-    -ortvec ROIPC.FSvent.r05.1D ROIPC.FSvent.r05                          \
-    -ortvec ROIPC.FSvent.r06.1D ROIPC.FSvent.r06                          \
-    -ortvec mot_demean.r01.1D mot_demean_r01                              \
-    -ortvec mot_demean.r02.1D mot_demean_r02                              \
-    -ortvec mot_demean.r03.1D mot_demean_r03                              \
-    -ortvec mot_demean.r04.1D mot_demean_r04                              \
-    -ortvec mot_demean.r05.1D mot_demean_r05                              \
-    -ortvec mot_demean.r06.1D mot_demean_r06                              \
-    -ortvec mot_deriv.r01.1D mot_deriv_r01                                \
-    -ortvec mot_deriv.r02.1D mot_deriv_r02                                \
-    -ortvec mot_deriv.r03.1D mot_deriv_r03                                \
-    -ortvec mot_deriv.r04.1D mot_deriv_r04                                \
-    -ortvec mot_deriv.r05.1D mot_deriv_r05                                \
-    -ortvec mot_deriv.r06.1D mot_deriv_r06                                \
+    -ortvec ROIPC.FSvent.rall.1D ROIPC.FSvent.rall                        \
+    -ortvec mot_demean.rall.1D mot_demean_rall                            \
+    -ortvec mot_deriv.rall.1D mot_deriv_rall                              \
     -polort 5                                                             \
     -num_stimts 0                                                         \
     -jobs 32                                                              \
@@ -229,3 +181,7 @@ done
            -censor censor_${SBJ}_combined_2.1D -cenmode NTRP \
            -dsort Local_FSWe_rall+tlrc \
            -ort X.nocensor.xmat.wl030s.1D -prefix errts.${SBJ}.wl030s.fanaticor
+
+rm ROIPC.FSvent.rall.1D
+rm mot_demean.rall.1D
+rm mot_deriv.rall.1D
