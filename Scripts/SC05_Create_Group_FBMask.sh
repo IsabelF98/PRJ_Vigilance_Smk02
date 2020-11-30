@@ -1,11 +1,11 @@
 # Author: Javier Gonzalez-Castillo
 # Date: October 30th, 2020
 #
-# This script creates a FB mask common to all subjects in DSET01. This mask will used in later
+# This script creates a FB mask common to all subjects in DSET02. This mask will used in later
 # stages of the analysis to only select ROIs with valid voxels in all subjects
 
 set -e
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # 1. Create output directory (if needed)
 # --------------------------------------
@@ -17,7 +17,7 @@ fi
 
 # 2. Find all available full brain masks (as created via the maximally pre-processed pipeline)
 # --------------------------------------------------------------------------------------------
-masks=`find ${PRJDIR}/PrcsData/sub-???/D02_Preproc_fMRI/full_mask.lowSigma.sub-???+tlrc.HEAD | sed 's/.HEAD//g' | tr -s '\n' ' '`
+masks=`find ${PRJDIR}/PrcsData/sub-S??/D02_Preproc_fMRI/full_mask.lowSigma.sub-S??+tlrc.HEAD | sed 's/.HEAD//g' | tr -s '\n' ' '`
 
 # 3. Create the group-level full brain mask
 # -----------------------------------------
