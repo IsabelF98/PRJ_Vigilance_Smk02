@@ -1,5 +1,6 @@
 set -e
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
+echo ${PRJDIR}
 
 cd ${PRJDIR}/PrcsData/${SBJ}/D02_Preproc_fMRI
 
