@@ -1,6 +1,8 @@
+# 11/30/2020 - Isabel Fernandez
+
 set -e
 
-PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk01/'
+PRJDIR='/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 ROIMinSize=10
 OrigAtlasSpace=MNI
 NROIS=200
