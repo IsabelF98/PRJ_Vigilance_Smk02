@@ -4,3 +4,7 @@ PrcsData/
 TEST/
 *.logs
 *.SWARM.sh
+Figures/CSF/
+Figures/TSNR/
+Figures/WhiteMatter/
+Scripts/SC02_Preproc_fMRI.CreateSwarm.bck.sh
