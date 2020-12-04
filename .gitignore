@@ -10,3 +10,4 @@ Figures/WhiteMatter/
 Scripts/SC02_Preproc_fMRI.CreateSwarm.bck.sh
 Notebooks/subject_run.txt
 Notebooks/subject_time.txt
+*.ipynb
