@@ -1,6 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: ipynb,py:light
 #     text_representation:
 #       extension: .py
 #       format_name: light
@@ -72,7 +73,7 @@ WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', optio
 def update_run(event):
     RunSelect.options = SubDict[event.new]
     
-SubjSelect.param.watch(update_run, 'value')
+SubjSelect.param.watch(update_run,'value')
 
 pn.Row(SubjSelect, RunSelect, WindowSelect)
 # -
@@ -82,6 +83,10 @@ pn.Row(SubjSelect, RunSelect, WindowSelect)
 
 # +
 # Subject information
+#SBJ                    = 'sub-S29'
+#RUN                    = 'All'
+#WL_sec                 = '30'
+
 SBJ                    = SubjSelect.value
 RUN                    = RunSelect.value
 WL_sec                 = WindowSelect.value
@@ -96,7 +101,7 @@ le_k_NN                = 100
 #Path to data
 PRJDIR       = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 path_datadir = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
-data_prefix  = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s.'+RUN
+data_prefix  = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
 data_path   = osp.join(path_datadir,data_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.le'+str(le_num_dims)+'d_knn'+str(le_k_NN).zfill(3)+'.pkl')
 # -
 
@@ -105,7 +110,7 @@ try:
     LE3D_df = pd.read_pickle(data_path)
 except:
     print("++ ERROR: Data for %s, run %s, window lenth %s, DOES NOT EXIST" %(SBJ,RUN,str(WL_sec)))
-    print("          Please run N01_SWC.ipynb for this given subject run and window lenght")
+    print("          Please run N01_SWC.ipynb for this given subject, run, and window lenght")
 NTP,arb = LE3D_df.shape
 print('Data shape:',LE3D_df.shape)
 
@@ -121,10 +126,8 @@ def plot_embed3d(max_win):
                            size=5, 
                            xlim=(-1,1), 
                            ylim=(-1,1), 
-                           zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=800, width=800)
+                           zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
     return output
 pn.Column(player,plot_embed3d)
-
-LE3D_df
 
 

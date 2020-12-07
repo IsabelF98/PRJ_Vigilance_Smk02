@@ -128,7 +128,7 @@ le_k_NN                = 100
 
 path_ts        = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','errts.'+SBJ+'.'+atlas_name+'.wl'+str(WL_sec).zfill(3)+'s.fanaticor_ts.1D')
 path_outdir    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
-out_prefix     = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s.'+RUN
+out_prefix     = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
 out_pca_path   = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.pca_obj.pkl')
 out_pcats_path = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.pca_ts.pkl')
 out_swc_path   = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.swcorr.pkl')
@@ -250,8 +250,8 @@ LE3D_df['z'] = se_X[:,2]
 # on the same scale (and given that the dimensions are meaningless), I create this normalized version of the low dimensional embedding
 LE3D_df[['x_norm','y_norm','z_norm']]= LE3D_df[['x','y','z']]/LE3D_df[['x','y','z']].max()
 # External-data based color
-LE3D_df['color_int'] = [(255,255,255) for i in range(winInfo['numWins'])]
-LE3D_df['color_rgb'] = ['#ffffff' for i in range(winInfo['numWins'])]
+LE3D_df['color_int'] = [(204,209,209) for i in range(winInfo['numWins'])]
+LE3D_df['color_rgb'] = ['#CCD1D1' for i in range(winInfo['numWins'])]
 
 # Time-based color
 #color_int_temp = pd.DataFrame(LE3D_df['color_int'])
