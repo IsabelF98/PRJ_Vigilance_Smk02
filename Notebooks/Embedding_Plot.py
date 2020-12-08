@@ -83,10 +83,6 @@ pn.Row(SubjSelect, RunSelect, WindowSelect)
 
 # +
 # Subject information
-#SBJ                    = 'sub-S29'
-#RUN                    = 'All'
-#WL_sec                 = '30'
-
 SBJ                    = SubjSelect.value
 RUN                    = RunSelect.value
 WL_sec                 = WindowSelect.value
@@ -112,7 +108,6 @@ except:
     print("++ ERROR: Data for %s, run %s, window lenth %s, DOES NOT EXIST" %(SBJ,RUN,str(WL_sec)))
     print("          Please run N01_SWC.ipynb for this given subject, run, and window lenght")
 NTP,arb = LE3D_df.shape
-print('Data shape:',LE3D_df.shape)
 
 # ***
 # ## Plot
@@ -122,7 +117,7 @@ player = pn.widgets.Player(name='Player', start=0, end=NTP, value=1, loop_policy
 def plot_embed3d(max_win):
     output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
                            LE3D_df['y_norm'][0:max_win],
-                           LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['color_rgb'][0:max_win],
+                           LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['time_color_rgb'][0:max_win],
                            size=5, 
                            xlim=(-1,1), 
                            ylim=(-1,1), 

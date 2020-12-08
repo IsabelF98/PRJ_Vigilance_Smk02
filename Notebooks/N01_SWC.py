@@ -241,7 +241,7 @@ print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
 # +
 # Put the embeddings into a dataframe (for saving and plotting)
 # =============================================================
-LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','color_int','color_rgb','label'])
+LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','no_color_rgb','no_color_hex','time_color_rgb','label'])
 LE3D_df['x'] = se_X[:,0]
 LE3D_df['y'] = se_X[:,1]
 LE3D_df['z'] = se_X[:,2]
@@ -250,26 +250,26 @@ LE3D_df['z'] = se_X[:,2]
 # on the same scale (and given that the dimensions are meaningless), I create this normalized version of the low dimensional embedding
 LE3D_df[['x_norm','y_norm','z_norm']]= LE3D_df[['x','y','z']]/LE3D_df[['x','y','z']].max()
 # External-data based color
-LE3D_df['color_int'] = [(204,209,209) for i in range(winInfo['numWins'])]
-LE3D_df['color_rgb'] = ['#CCD1D1' for i in range(winInfo['numWins'])]
+LE3D_df['no_color_rgb'] = [(204,209,209) for i in range(winInfo['numWins'])]
+LE3D_df['no_color_hex'] = ['#CCD1D1' for i in range(winInfo['numWins'])]
 
 # Time-based color
-#color_int_temp = pd.DataFrame(LE3D_df['color_int'])
-#color_rgb_temp = pd.DataFrame(LE3D_df['color_rgb'])
-#color_int_temp.loc[0:411, 'color_int'] = [(244,81,30)] # color for Sleep Ascending data
-#color_rgb_temp.loc[0:411, 'color_rgb'] = ['#F4511E'] # color for Sleep Ascending data
-#color_int_temp.loc[412:823, 'color_int'] = [(255,152,0)] # color for Sleep Descending data
-#color_rgb_temp.loc[412:823, 'color_rgb'] = ['#FF9800'] # color for Sleep Descending data
-#color_int_temp.loc[824:1118, 'color_int'] = [(255,202,40)] # color for Sleep RESER data
-#color_rgb_temp.loc[824:1118, 'color_rgb'] = ['#FFCA28'] # color for Sleep RESER data
-#color_int_temp.loc[1119:1530, 'color_int'] = [(30,136,229)] # color for Wake Ascending data
-#color_rgb_temp.loc[1119:1530, 'color_rgb'] = ['#1E88E5'] # color for Wake Ascending data
-#color_int_temp.loc[1531:1942, 'color_int'] = [(41,182,246)] # color for Wake Descending data
-#color_rgb_temp.loc[1531:1942, 'color_rgb'] = ['#29B6F6'] # color for Wake Descending data
-#color_int_temp.loc[1953:2237, 'color_int'] = [(128,222,234)] # color for Wake RESER data
-#color_rgb_temp.loc[1953:2237, 'color_rgb'] = ['#80DEEA'] # color for Wake RESER data
-#LE3D_df['color_int'] = color_int_temp['color_int']
-#LE3D_df['color_rgb'] = color_rgb_temp['color_rgb']
+time_color_rbg_temp = pd.DataFrame(LE3D_df['time_color_rgb'])
+if RUN == 'All':
+    time_list = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SubjSelect.value])-1)]
+    color_list = [(255,87,34),(255,167,38),(255,235,59),(139,195,74),(0,188,212),(126,87,194)]
+    x=0
+    for i in range(len(time_list)):
+        time_color_rbg_temp.loc[x:(x-1)+time_list[i]-(WL_trs-1), 'time_color_rgb'] = [color_list[i]] # color for run windows
+        x=time_list[i]-(WL_trs-1)
+        if i != len(time_list)-1:
+            time_color_rbg_temp.loc[x:(x-1)+(WL_trs-1), 'time_color_rgb'] = [(204,209,209)] # color for between run windows
+            x=x+(WL_trs-1)
+    LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
+else:
+    time_color_rbg_temp.loc[0:244, 'time_color_rgb'] = [(n,0,0) for n in range(10,255)]
+    time_color_rbg_temp.loc[245:winInfo['numWins']-1, 'time_color_rgb'] = [(255,n,n) for n in range(winInfo['numWins']-245)]
+    LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
 
 # Window Names
 LE3D_df['label'] = winInfo['winNames']
@@ -296,6 +296,7 @@ pn.Column(player,plot_embed3d)
 # ### Test with PNAS 2015 Results (for consistency)
 # ***
 
+# + jupyter={"source_hidden": true}
 # Load Pre-computed results in MATLAB from one task-based subject from NI2019 
 from scipy.io import loadmat
 DATAFILE       = osp.join('/data/SFIMJGC_HCP7T/PRJ_CognitiveStateDetection02',
@@ -308,13 +309,14 @@ pnas2015orig_tr                     = DATAMAT['TR'][0][0]
 pnas2015orig_ts_xr                  = xr.DataArray(pnas2015orig_ts_df.values,dims=['Time [TRs]','ROIs'])
 print('++ Loaded this data: %s' % DATAFILE)
 
+# + jupyter={"source_hidden": true}
 # Generate Plot of Functional connectivity matrix
 pnas2015orig_fc_matrix_plot       = plot_fc_matrix(pnas2015orig_ts_df,pnas2015orig_roi_names,'single')
 # Generate Timeseries carpet plot
 pnas2015orig_ts_carpet_plot         = pnas2015orig_ts_xr.hvplot.image(cmap='gray', width=1500, colorbar=True, title='ROI Timeseries (carpet plot) - Subject: %s' % 'SBJ06').opts(colorbar_position='bottom')
 pnas2015orig_ts_roi_plot            = pnas2015orig_ts_df[0].hvplot(cmap='gray',width=1500,height=100)
 
-# +
+# + jupyter={"source_hidden": true}
 pn.Row(pnas2015orig_fc_matrix_plot, pnas2015orig_ts_carpet_plot)
 
 # PCA Step
@@ -323,11 +325,12 @@ pnas2015orig_ts_pca_df = pd.DataFrame(DATAMAT['dimRedTS'])
 print('++ INFO: PCA (as matlad did it)  --> %d components' % pnas2015orig_ts_pca_df.shape[1])
 print('++ INFO: PCA (as python does it) --> %d components' % pnas2015python_ts_pca_df.shape[1])
 pnas2015python_pca_plot
-# -
 
+# + jupyter={"source_hidden": true}
 pnas2015python_ts_pca_df['PC083'].hvplot(width=1700) * \
 pnas2015orig_ts_pca_df[83].hvplot().opts(line_dash='dashed')
 
+# + jupyter={"source_hidden": true}
 # Create a tukey (or tappered window) of the appropriate length
 # =============================================================
 pnas2015orig_wl_trs   = DATAMAT['WL'][0][0]
@@ -336,12 +339,15 @@ pnas2015python_window = np.ones((pnas2015orig_wl_trs,))
 pnas2015orig_swc_Z    = pd.DataFrame(DATAMAT['CB']['snapshots'][0][0].T)
 pnas2015python_swc_r, pnas2015python_swc_Z, pnas2015python_winInfo = compute_swc(pnas2015python_ts_pca_df,pnas2015orig_wl_trs,pnas2015orig_ws_trs,window=pnas2015python_window)
 
+# + jupyter={"source_hidden": true}
 xr.DataArray(pnas2015orig_swc_Z.values.T - pnas2015python_swc_Z.values.T,dims=['Time [Window ID]','PCA Connection']).hvplot.image(title='SWC Matrix - Fisher Z', cmap='RdBu_r').redim.range(value=(-1,1)).opts(width=500)
 
+# + jupyter={"source_hidden": true}
 nCom = 3
 k_NN = 100
 seed = np.random.RandomState(seed=5)
 
+# + jupyter={"source_hidden": true}
 start_time     = time.time()
 X = DATAMAT['CB']['snapshots'][0][0]
 #X = pnas2015_swc_Z.T
@@ -353,6 +359,7 @@ end_time                = time.time()
 print ('++ INFO: Elapset Time: '+ str(end_time - start_time))
 print ('++ INFO: Embedding Dimensions: %s' % str(pnas2015_se_X.shape))
 
+# + jupyter={"source_hidden": true}
 aux_color_int = DATAMAT['winInfo']['color'][0][0]
 aux_color_rgb = [ '#%02x%02x%02x' % (int(aux_color_int[i,0]*255), 
                                      int(aux_color_int[i,1]*255), 
@@ -369,9 +376,11 @@ embedding_df['label']     = aux_win_labels
 embedding_df.head()
 embedding_df.to_pickle('./test_embed.pkl')
 
+# + jupyter={"source_hidden": true}
 hv.extension('plotly')
 pn.extension('plotly')
 
+# + jupyter={"source_hidden": true}
 Nwins = embedding_df.shape[0]
 player     = pn.widgets.Player(name='Player', start=0, end=Nwins, value=1, loop_policy='loop', width=800, step=1)
 @pn.depends(player.param.value)
@@ -385,5 +394,3 @@ def plot_embed3d(max_win):
                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=800, width=800)
     return output
 pn.Column(player,plot_embed3d)
-
-
