@@ -40,11 +40,11 @@ pn.extension('plotly')
 # Creates data frame and dictionaly for widgets information 
 # ---------------------------------------------------------
 # NOTE: Only need to run once
-# NOTE: Must run ./subject_info.sh first if not done already
 
-# Subject and run data
-sub_DF = pd.read_csv('./subject_run.txt', delimiter=' ', header=None)
-sub_DF.columns = ['Sbj','Run']
+PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
+
+# Load data frame of valid subjects info
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/valid_run_df.pkl')
 
 # Dictionary of subject with valid runs
 SubDict = {}
@@ -72,7 +72,6 @@ WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', optio
 # Updates available runs given SubjSelect value
 def update_run(event):
     RunSelect.options = SubDict[event.new]
-    
 SubjSelect.param.watch(update_run,'value')
 
 pn.Row(SubjSelect, RunSelect, WindowSelect)
