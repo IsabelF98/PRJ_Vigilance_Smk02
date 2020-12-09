@@ -53,33 +53,10 @@ seed = np.random.RandomState(seed=7)
 # +
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
-# NOTE: Must run ./subject_info.sh first
-# Subject and run data
-sub_runs_DF = pd.read_csv('./subject_run.txt', delimiter=' ', header=None)
-sub_runs_DF.columns = ['Sbj','Run']
-# Subject and time data
-sub_time_DF = pd.read_csv('./subject_time.txt', delimiter=' ', header=None)
-sub_time_DF.columns = ['Sbj','Time']
+# Load data frame of valid subjects info
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/valid_run_df.pkl')
 
-# All subject info data frame
-sub_DF = pd.DataFrame(columns=['Sbj','Run','Time','Time Point Min','Time Point Max'])
-sub_DF['Sbj']  = sub_runs_DF['Sbj']
-sub_DF['Run']  = sub_runs_DF['Run']
-sub_DF['Time'] = sub_time_DF['Time']
-
-for i,idx in enumerate(sub_DF.index):
-    if idx == 0:
-        sub_DF.loc[idx,'Time Point Min'] = 0
-        sub_DF.loc[idx,'Time Point Max'] = sub_DF.loc[idx, 'Time'] - 1
-    else:
-        if sub_DF.loc[idx-1,'Sbj'] == sub_DF.loc[idx,'Sbj']:
-            sub_DF.loc[idx,'Time Point Min'] = sub_DF.loc[idx-1,'Time Point Max'] +1
-            sub_DF.loc[idx,'Time Point Max'] = sub_DF.loc[idx, 'Time'] -1 + sub_DF.loc[idx,'Time Point Min']
-        else:
-            sub_DF.loc[idx,'Time Point Min'] = 0
-            sub_DF.loc[idx,'Time Point Max'] = sub_DF.loc[idx, 'Time'] - 1
-
-# Dictionary of subject with valid runs
+# Dictionary of subject with valid run name, number of time points, and time region
 SubDict = {}
 for i,idx in enumerate(sub_DF.index):
     sbj  = sub_DF.loc[idx]['Sbj']
@@ -261,7 +238,7 @@ if RUN == 'All':
     x=0
     for i in range(len(time_list)):
         time_color_rbg_temp.loc[x:(x-1)+time_list[i]-(WL_trs-1), 'time_color_rgb'] = [color_list[i]] # color for run windows
-        x=time_list[i]-(WL_trs-1)
+        x=x+time_list[i]-(WL_trs-1)
         if i != len(time_list)-1:
             time_color_rbg_temp.loc[x:(x-1)+(WL_trs-1), 'time_color_rgb'] = [(204,209,209)] # color for between run windows
             x=x+(WL_trs-1)
@@ -296,7 +273,6 @@ pn.Column(player,plot_embed3d)
 # ### Test with PNAS 2015 Results (for consistency)
 # ***
 
-# + jupyter={"source_hidden": true}
 # Load Pre-computed results in MATLAB from one task-based subject from NI2019 
 from scipy.io import loadmat
 DATAFILE       = osp.join('/data/SFIMJGC_HCP7T/PRJ_CognitiveStateDetection02',
@@ -309,14 +285,13 @@ pnas2015orig_tr                     = DATAMAT['TR'][0][0]
 pnas2015orig_ts_xr                  = xr.DataArray(pnas2015orig_ts_df.values,dims=['Time [TRs]','ROIs'])
 print('++ Loaded this data: %s' % DATAFILE)
 
-# + jupyter={"source_hidden": true}
 # Generate Plot of Functional connectivity matrix
 pnas2015orig_fc_matrix_plot       = plot_fc_matrix(pnas2015orig_ts_df,pnas2015orig_roi_names,'single')
 # Generate Timeseries carpet plot
 pnas2015orig_ts_carpet_plot         = pnas2015orig_ts_xr.hvplot.image(cmap='gray', width=1500, colorbar=True, title='ROI Timeseries (carpet plot) - Subject: %s' % 'SBJ06').opts(colorbar_position='bottom')
 pnas2015orig_ts_roi_plot            = pnas2015orig_ts_df[0].hvplot(cmap='gray',width=1500,height=100)
 
-# + jupyter={"source_hidden": true}
+# +
 pn.Row(pnas2015orig_fc_matrix_plot, pnas2015orig_ts_carpet_plot)
 
 # PCA Step
@@ -325,12 +300,11 @@ pnas2015orig_ts_pca_df = pd.DataFrame(DATAMAT['dimRedTS'])
 print('++ INFO: PCA (as matlad did it)  --> %d components' % pnas2015orig_ts_pca_df.shape[1])
 print('++ INFO: PCA (as python does it) --> %d components' % pnas2015python_ts_pca_df.shape[1])
 pnas2015python_pca_plot
+# -
 
-# + jupyter={"source_hidden": true}
 pnas2015python_ts_pca_df['PC083'].hvplot(width=1700) * \
 pnas2015orig_ts_pca_df[83].hvplot().opts(line_dash='dashed')
 
-# + jupyter={"source_hidden": true}
 # Create a tukey (or tappered window) of the appropriate length
 # =============================================================
 pnas2015orig_wl_trs   = DATAMAT['WL'][0][0]
@@ -339,15 +313,12 @@ pnas2015python_window = np.ones((pnas2015orig_wl_trs,))
 pnas2015orig_swc_Z    = pd.DataFrame(DATAMAT['CB']['snapshots'][0][0].T)
 pnas2015python_swc_r, pnas2015python_swc_Z, pnas2015python_winInfo = compute_swc(pnas2015python_ts_pca_df,pnas2015orig_wl_trs,pnas2015orig_ws_trs,window=pnas2015python_window)
 
-# + jupyter={"source_hidden": true}
 xr.DataArray(pnas2015orig_swc_Z.values.T - pnas2015python_swc_Z.values.T,dims=['Time [Window ID]','PCA Connection']).hvplot.image(title='SWC Matrix - Fisher Z', cmap='RdBu_r').redim.range(value=(-1,1)).opts(width=500)
 
-# + jupyter={"source_hidden": true}
 nCom = 3
 k_NN = 100
 seed = np.random.RandomState(seed=5)
 
-# + jupyter={"source_hidden": true}
 start_time     = time.time()
 X = DATAMAT['CB']['snapshots'][0][0]
 #X = pnas2015_swc_Z.T
@@ -359,7 +330,6 @@ end_time                = time.time()
 print ('++ INFO: Elapset Time: '+ str(end_time - start_time))
 print ('++ INFO: Embedding Dimensions: %s' % str(pnas2015_se_X.shape))
 
-# + jupyter={"source_hidden": true}
 aux_color_int = DATAMAT['winInfo']['color'][0][0]
 aux_color_rgb = [ '#%02x%02x%02x' % (int(aux_color_int[i,0]*255), 
                                      int(aux_color_int[i,1]*255), 
@@ -376,11 +346,9 @@ embedding_df['label']     = aux_win_labels
 embedding_df.head()
 embedding_df.to_pickle('./test_embed.pkl')
 
-# + jupyter={"source_hidden": true}
 hv.extension('plotly')
 pn.extension('plotly')
 
-# + jupyter={"source_hidden": true}
 Nwins = embedding_df.shape[0]
 player     = pn.widgets.Player(name='Player', start=0, end=Nwins, value=1, loop_policy='loop', width=800, step=1)
 @pn.depends(player.param.value)
