@@ -40,6 +40,7 @@ from sklearn.manifold  import SpectralEmbedding
 from sklearn.neighbors import kneighbors_graph
 from scipy.spatial.distance import correlation as dis_corr
 from utils.base import plot_fc_matrix, compute_swc, reduce_dimensionality_pca
+from utils.emb_func import load_data, lapacian_dataframe
 import hvplot.pandas
 import hvplot.xarray
 import holoviews as hv
@@ -48,9 +49,15 @@ from holoviews import dim, opts
 hv.extension('bokeh')
 pn.extension()
 
+# ***
+# ### 0. Load Preliminary Information
+
 seed = np.random.RandomState(seed=7)
 
 # +
+# Load all subject and run information for valid runs
+# ---------------------------------------------------
+
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # Load data frame of valid subjects info
@@ -139,35 +146,15 @@ print(' + LE  File            : %s' % out_lem_path)
 # +
 # %%time
 
-temp_ts_df = pd.read_csv(path_ts, sep='\t', header=None)
-if RUN != 'All':
-    ts_df = pd.DataFrame(temp_ts_df.loc[tp_min:tp_max])
-    ts_df = ts_df.reset_index()
-    ts_df = ts_df.drop('index',axis=1)
-else:
-    ts_df = pd.DataFrame(temp_ts_df)
-Nacq,Nrois = ts_df.shape
-
-# Generate ROI names
-# ------------------
-# Those are default names, but it would be useful to have a file per atlas that contains the names
-# and we load it here.
-roi_names  = ['ROI'+str(r+1).zfill(3) for r in range(Nrois)]
-
-# Put timeseries also in Xarray form. This is necessary for plotting purposes via hvplot.Image
-# --------------------------------------------------------------------------------------------
-ts_xr      = xr.DataArray(ts_df.values,dims=['Time [TRs]','ROIs'])
-
-# Show a summary of the data being loaded.
-# ----------------------------------------
-print('++ INFO: Time-series loaded into memory [N_acq=%d, N_rois=%d]' % (Nacq, Nrois))
+ts_df,Nacq,Nrois,roi_names,ts_xr = load_data(path_ts,RUN,tp_min,tp_max) # Call load data function to load data
+print('++ INFO: Time-series loaded into memory [N_acq=%d, N_rois=%d]' % (Nacq, Nrois)) # Show a summary of the data being loaded
 
 # +
 # %%time
-# Generate Plot of Static Functional connectivity matrix
-# ======================================================
-fc_matrix_plot        = plot_fc_matrix(ts_df,roi_names,'single')
 
+# Generate Plot of Static Functional connectivity matrix
+# ------------------------------------------------------
+fc_matrix_plot        = plot_fc_matrix(ts_df,roi_names,'single')
 # Generate Timeseries carpet plot
 ts_carpet_plot = ts_xr.hvplot.image(cmap='gray', width=1500, colorbar=True, title='ROI Timeseries (carpet plot) - Subject: %s' % SBJ).opts(colorbar_position='bottom')
 ts_roi_plot    = ts_df[0].hvplot(cmap='gray',width=1500,height=100)
@@ -182,77 +169,55 @@ pn.Row(fc_matrix_plot, pn.Column(ts_carpet_plot,ts_roi_plot))
 #
 # * How many components are kept depends on the amount of variance we keep (default is 97.5%) 
 
+# +
 # %%time
+
 ts_pca_df, pca_plot, pca = reduce_dimensionality_pca(ts_df,dim_red_method_percent,sbj_id=SBJ)
 pickle.dump(pca, open(out_pca_path, "wb" ) )
 ts_pca_df.to_pickle(out_pcats_path)
+# -
 
 pca_plot
 
 # ***
 # ### 4. Create SWC Matrix
 
+# +
 # %%time
-# Create a tukey (or tappered window) of the appropriate length
-# =============================================================
+
+# Create a tukey or tappered window of the appropriate length
+# -------------------------------------------------------------
 #window = tukey(WL_trs,.2)
 window = np.ones((WL_trs,))
 pd.DataFrame(window).hvplot(title='Sliding Window Shape',xlabel='Time [TRs]',ylabel='Amplitude')
 
+# +
 # %%time
+
 # Compute sliding window correlation
-# ==================================
+# ----------------------------------
 swc_r, swc_Z, winInfo = compute_swc(ts_pca_df,WL_trs,WS_trs,window=window)
 xr.DataArray(swc_Z.values.T,dims=['Time [Window ID]','PCA Connection']).hvplot.image(title='SWC Matrix - Fisher Z', cmap='RdBu').redim.range(value=(-1,1)).opts(width=1700)
+# -
 
 # ***
 # ### 4. Generate Laplacian Embedding
 
+# +
 # %%time
+
 se             = SpectralEmbedding(n_components=le_num_dims, affinity='precomputed', n_jobs=32, random_state=seed)
 X_affinity     = kneighbors_graph(swc_Z.T,le_k_NN,include_self=True,n_jobs=32, metric=dis_corr)
 X_affinity     = 0.5 * (X_affinity + X_affinity.T)
 se_X           = se.fit_transform(X_affinity.toarray())
 print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
+# -
 
-# +
 # Put the embeddings into a dataframe (for saving and plotting)
-# =============================================================
-LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','no_color_rgb','no_color_hex','time_color_rgb','label'])
-LE3D_df['x'] = se_X[:,0]
-LE3D_df['y'] = se_X[:,1]
-LE3D_df['z'] = se_X[:,2]
-# Note: there is a change in scale between scikit-learn 0.19 and 0.23 when it comes to the laplacian embeddings.
-# I checked a few examples and the structure is the same, but the scale is different. To be able to represent all cases
-# on the same scale (and given that the dimensions are meaningless), I create this normalized version of the low dimensional embedding
-LE3D_df[['x_norm','y_norm','z_norm']]= LE3D_df[['x','y','z']]/LE3D_df[['x','y','z']].max()
-# External-data based color
-LE3D_df['no_color_rgb'] = [(204,209,209) for i in range(winInfo['numWins'])]
-LE3D_df['no_color_hex'] = ['#CCD1D1' for i in range(winInfo['numWins'])]
-
-# Time-based color
-time_color_rbg_temp = pd.DataFrame(LE3D_df['time_color_rgb'])
-if RUN == 'All':
-    time_list = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SubjSelect.value])-1)]
-    color_list = [(255,87,34),(255,167,38),(255,235,59),(139,195,74),(0,188,212),(126,87,194)]
-    x=0
-    for i in range(len(time_list)):
-        time_color_rbg_temp.loc[x:(x-1)+time_list[i]-(WL_trs-1), 'time_color_rgb'] = [color_list[i]] # color for run windows
-        x=x+time_list[i]-(WL_trs-1)
-        if i != len(time_list)-1:
-            time_color_rbg_temp.loc[x:(x-1)+(WL_trs-1), 'time_color_rgb'] = [(204,209,209)] # color for between run windows
-            x=x+(WL_trs-1)
-    LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
-else:
-    time_color_rbg_temp.loc[0:244, 'time_color_rgb'] = [(n,0,0) for n in range(10,255)]
-    time_color_rbg_temp.loc[245:winInfo['numWins']-1, 'time_color_rgb'] = [(255,n,n) for n in range(winInfo['numWins']-245)]
-    LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
-
-# Window Names
-LE3D_df['label'] = winInfo['winNames']
+# -------------------------------------------------------------
+LE3D_df = lapacian_dataframe(se_X,winInfo,RUN)
 LE3D_df.head()
 LE3D_df.to_pickle(out_lem_path)
-# -
 
 hv.extension('plotly')
 pn.extension('plotly')
