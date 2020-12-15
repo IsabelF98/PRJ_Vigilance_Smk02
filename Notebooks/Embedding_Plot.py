@@ -37,9 +37,8 @@ pn.extension('plotly')
 # ## Create Widgets
 
 # +
-# Creates data frame and dictionaly for widgets information 
-# ---------------------------------------------------------
-# NOTE: Only need to run once
+# Load data frame and create dictionaly for widgets information 
+# -------------------------------------------------------------
 
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
@@ -63,65 +62,101 @@ SubjectList = list(SubDict.keys())
 # +
 # Widgets for selecting subject run and window legth
 # --------------------------------------------------
-# NOTE: Only need to run once
 
-SubjSelect = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
+SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
 RunSelect  = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60]) # Select window lenght
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time Color']) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 def update_run(event):
     RunSelect.options = SubDict[event.new]
 SubjSelect.param.watch(update_run,'value')
 
-pn.Row(SubjSelect, RunSelect, WindowSelect)
+
 # -
 
 # ***
 # ## Load Data
 
-# +
-# Subject information
-SBJ                    = SubjSelect.value
-RUN                    = RunSelect.value
-WL_sec                 = WindowSelect.value
-atlas_name             = 'Craddock_T2Level_0200'
-WS_trs                 = 1
-TR                     = 2.0
-dim_red_method         = 'PCA'
-dim_red_method_percent = 97.5
-le_num_dims            = 3
-le_k_NN                = 100
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
+def load_data(SBJ,RUN,WL_sec):
+    """
+    This function loads the data needed for plotting the embeddings.
+    The arguments are the subject name, run, and window legth (chosen by the widgets).
+    The fuction returns a pandas data frame of the data.
+    """
+    atlas_name             = 'Craddock_T2Level_0200'
+    WS_trs                 = 1
+    TR                     = 2.0
+    dim_red_method         = 'PCA'
+    dim_red_method_percent = 97.5
+    le_num_dims            = 3
+    le_k_NN                = 100
 
-#Path to data
-PRJDIR       = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
-path_datadir = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
-data_prefix  = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
-data_path   = osp.join(path_datadir,data_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.le'+str(le_num_dims)+'d_knn'+str(le_k_NN).zfill(3)+'.pkl')
-# -
-
-# Try loading data
-try:
+    #Path to data
+    PRJDIR       = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
+    path_datadir = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
+    data_prefix  = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
+    data_path   = osp.join(path_datadir,data_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.le'+str(le_num_dims)+'d_knn'+str(le_k_NN).zfill(3)+'.pkl')
     LE3D_df = pd.read_pickle(data_path)
-except:
-    print("++ ERROR: Data for %s, run %s, window lenth %s, DOES NOT EXIST" %(SBJ,RUN,str(WL_sec)))
-    print("          Please run N01_SWC.ipynb for this given subject, run, and window lenght")
-NTP,arb = LE3D_df.shape
+    return LE3D_df
+
+
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
+def get_num_tp(SBJ,RUN,WL_sec):
+    """
+    This function outputs the number of time points in the selected data.
+    To load the data load_data() fuction is called.
+    The arguments are the subject name, run, and window legth (chosen by the widgets).
+    """
+    LE3D_df = load_data(SBJ,RUN,WL_sec)
+    value,arb = LE3D_df.shape
+    return value
+
 
 # ***
 # ## Plot
 
-player = pn.widgets.Player(name='Player', start=0, end=NTP, value=1, loop_policy='loop', width=800, step=1)
-@pn.depends(player.param.value)
-def plot_embed3d(max_win):
+# +
+# Time player for embedding plot
+player = pn.widgets.Player(name='Player', start=0, end=get_num_tp(SubjSelect.value,RunSelect.value,WindowSelect.value), value=1,
+                           loop_policy='loop', width=800, step=1)
+
+#def update_player(event1,event2,event3):
+#    player.end = get_num_tp(event1.new,event2.new,event3.new)
+#SubjSelect.param.watch(update_player,'value')
+#RunSelect.param.watch(update_player,'value')
+#WindowSelect.param.watch(update_player,'value')
+
+
+@pn.depends(player.param.value,SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value,ColorSelect.param.value)
+def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
+    """
+    This function plots the embeddings on a 3D plot.
+    To load the data load_data() fuction is called.
+    The dimensions of the plot "max_win" (time) is determined by the player.
+    The subject, run, window lenght, and color scheme of the plot is dermined by widgets selected.
+    The output of the function is the plot generated by holoviews with extension plotly.
+    """
+    LE3D_df = load_data(SBJ,RUN,WL_sec)
+    if COLOR == 'No Color':
+        plot_color = LE3D_df['no_color_rgb']
+    if COLOR == 'Time Color':
+        plot_color = LE3D_df['time_color_rgb']
     output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
                            LE3D_df['y_norm'][0:max_win],
-                           LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['time_color_rgb'][0:max_win],
+                           LE3D_df['z_norm'][0:max_win])).opts(color=plot_color[0:max_win],
                            size=5, 
                            xlim=(-1,1), 
                            ylim=(-1,1), 
                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
     return output
-pn.Column(player,plot_embed3d)
 
 
+# -
+
+# ***
+# ## Plot Display
+
+pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
