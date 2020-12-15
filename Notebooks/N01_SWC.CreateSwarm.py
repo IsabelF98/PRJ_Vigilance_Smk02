@@ -54,7 +54,7 @@ for i,idx in enumerate(sub_DF.index):
             sub_DF.loc[idx,'Time Point Max'] = sub_DF.loc[idx, 'Time'] - 1
             
 # Save data frame as valid_run_df.pkl in Notebooks directory
-sub_DF.to_pickle(PRJDIR+'Notebooks/valid_run_df.pkl')
+sub_DF.to_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
 
 # +
 # Create dictionary of subject with valid runs

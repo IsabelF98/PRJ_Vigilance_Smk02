@@ -23,9 +23,9 @@ do
     run_times=(`3dinfo -nt ${PRJ_DIR}/PrcsData/${subjects[i]}/D02_Preproc_fMRI/pb05.${subjects[i]}.r0?.scale+tlrc.HEAD | awk '{print $1}' | tr -s '\n' ' '`)
     if [ ${subjects[i]} = 'sub-S12' ]
     then
-        echo "${subjects[i]} SleepAscending 412" >> ./subject_run.txt
-        echo "${subjects[i]} SleepDescending 412" >> ./subject_run.txt
-        echo "${subjects[i]} SleepRSER 295" >> ./subject_run.txt
+        echo "${subjects[i]} SleepAscending 412" >> ./utils/subject_run.txt
+        echo "${subjects[i]} SleepDescending 412" >> ./utils/subject_run.txt
+        echo "${subjects[i]} SleepRSER 295" >> ./utils/subject_run.txt
     else
         for n in `seq 0 1 ${num_datatypes}`
         do
@@ -37,7 +37,7 @@ do
         num_runs=`echo "${#runs[@]} -1" | bc -l`
         for n in `seq 0 1 ${num_runs}`
             do
-                echo "${subjects[i]} ${runs[n]} ${run_times[n]}" >> ./subject_run.txt
+                echo "${subjects[i]} ${runs[n]} ${run_times[n]}" >> ./utils/subject_run.txt
         done
      fi
 done
