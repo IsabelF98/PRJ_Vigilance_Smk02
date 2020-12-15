@@ -36,7 +36,7 @@ pn.extension()
 
 seed = np.random.RandomState(seed=7) # Seed for embedding
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
-sub_DF = pd.read_pickle(PRJDIR+'Notebooks/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
 
 # Dictionary of subject with valid runs
 SubDict = {}

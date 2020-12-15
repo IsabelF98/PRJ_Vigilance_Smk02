@@ -61,7 +61,7 @@ seed = np.random.RandomState(seed=7)
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # Load data frame of valid subjects info
-sub_DF = pd.read_pickle(PRJDIR+'Notebooks/valid_run_df.pkl')
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
 
 # Dictionary of subject with valid run name, number of time points, and time region
 SubDict = {}
@@ -109,6 +109,7 @@ dim_red_method         = 'PCA'
 dim_red_method_percent = 97.5
 le_num_dims            = 3
 le_k_NN                = 100
+
 
 path_ts        = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','errts.'+SBJ+'.'+atlas_name+'.wl'+str(WL_sec).zfill(3)+'s.fanaticor_ts.1D')
 path_outdir    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')

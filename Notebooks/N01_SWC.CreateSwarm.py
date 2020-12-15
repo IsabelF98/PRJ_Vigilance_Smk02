@@ -35,7 +35,7 @@ import numpy as np
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # Subject and run data frame
-sub_DF = pd.read_csv('./subject_run.txt', delimiter=' ', header=None)
+sub_DF = pd.read_csv('.utils/subject_run.txt', delimiter=' ', header=None)
 sub_DF.columns = ['Sbj','Run','Time']
 sub_DF['Time Point Min'] = np.nan
 sub_DF['Time Point Max'] = np.nan
