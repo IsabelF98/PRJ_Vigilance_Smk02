@@ -80,7 +80,7 @@ WinList = [30,46,60]
 
 # +
 # Creates N01_SWC.SWARM.sh file
-# ----------------------
+# -----------------------------
 
 os.system('if [ ! -d N01_SWC.logs ]; then mkdir N01_SWC.logs; fi') # Create logs directory if doesnt already exist
 os.system('echo "#swarm -f ./N01_SWC.SWARM.sh -g 32 -t 32 --time 48:00:00 --logdir ./N01_SWC.logs; watch -n 30 squeue -u fernandezis" > ./N01_SWC.SWARM.sh')
