@@ -35,7 +35,7 @@ import numpy as np
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # Subject and run data frame
-sub_DF = pd.read_csv('.utils/subject_run.txt', delimiter=' ', header=None)
+sub_DF = pd.read_csv('./utils/subject_run.txt', delimiter=' ', header=None)
 sub_DF.columns = ['Sbj','Run','Time']
 sub_DF['Time Point Min'] = np.nan
 sub_DF['Time Point Max'] = np.nan
@@ -83,7 +83,7 @@ WinList = [30,46,60]
 # -----------------------------
 
 os.system('if [ ! -d N01_SWC.logs ]; then mkdir N01_SWC.logs; fi') # Create logs directory if doesnt already exist
-os.system('echo "#swarm -f ./N01_SWC.SWARM.sh -g 32 -t 32 --time 48:00:00 --logdir ./N01_SWC.logs; watch -n 30 squeue -u fernandezis" > ./N01_SWC.SWARM.sh')
+os.system('echo "#swarm -f ./N01_SWC.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N01_SWC.logs; watch -n 30 squeue -u fernandezis" > ./N01_SWC.SWARM.sh')
 for sbj in SubjectList:
     for run in SubDict[sbj]:
         for win in WinList:
