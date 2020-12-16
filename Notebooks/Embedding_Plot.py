@@ -43,7 +43,7 @@ pn.extension('plotly')
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 
 # Load data frame of valid subjects info
-sub_DF = pd.read_pickle(PRJDIR+'Notebooks/valid_run_df.pkl')
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
 
 # Dictionary of subject with valid runs
 SubDict = {}
@@ -66,7 +66,7 @@ SubjectList = list(SubDict.keys())
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
 RunSelect  = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60]) # Select window lenght
-ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time Color']) # Select color setting for plot
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time Color','Sleep Color']) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 def update_run(event):
@@ -144,6 +144,8 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         plot_color = LE3D_df['no_color_rgb']
     if COLOR == 'Time Color':
         plot_color = LE3D_df['time_color_rgb']
+    if COLOR == 'Sleep Color':
+        plot_color = LE3D_df['sleep_color_rgb']
     output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
                            LE3D_df['y_norm'][0:max_win],
                            LE3D_df['z_norm'][0:max_win])).opts(color=plot_color[0:max_win],

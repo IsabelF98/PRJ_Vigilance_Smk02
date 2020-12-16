@@ -1,6 +1,7 @@
 import numpy     as np
 import pandas    as pd
 import xarray    as xr
+import os.path as osp
 
 def load_data(path_ts,RUN,tp_min,tp_max):
     temp_ts_df = pd.read_csv(path_ts, sep='\t', header=None)
@@ -15,8 +16,9 @@ def load_data(path_ts,RUN,tp_min,tp_max):
     ts_xr      = xr.DataArray(ts_df.values,dims=['Time [TRs]','ROIs']) # Xarray frame of data
     return ts_df,Nacq,Nrois,roi_names,ts_xr
 
-def lapacian_dataframe(se_X,winInfo,RUN):
-    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','no_color_rgb','no_color_hex','time_color_rgb','label'])
+def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs):
+    PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
+    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','no_color_rgb','no_color_hex','time_color_rgb','sleep_color_rgb','label'])
     LE3D_df['x'] = se_X[:,0]
     LE3D_df['y'] = se_X[:,1]
     LE3D_df['z'] = se_X[:,2]
@@ -41,12 +43,40 @@ def lapacian_dataframe(se_X,winInfo,RUN):
             if i != len(time_list)-1:
                 time_color_rbg_temp.loc[x:(x-1)+(WL_trs-1), 'time_color_rgb'] = [(204,209,209)] # color for between run windows
                 x=x+(WL_trs-1)
-        LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
     else: # Color changes over time
         time_color_rbg_temp.loc[0:244, 'time_color_rgb'] = [(n,0,0) for n in range(10,255)]
         time_color_rbg_temp.loc[245:winInfo['numWins']-1, 'time_color_rgb'] = [(255,n,n) for n in range(winInfo['numWins']-245)]
-        LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
-
+    LE3D_df['time_color_rgb'] = time_color_rbg_temp['time_color_rgb']
+    
+    # Sleep-based color
+    sleep_color_rgb_temp = pd.DataFrame(columns=['sleep','sleep_color_rgb'])
+    if RUN != 'All':
+        path_sleep   = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
+        EEG_sleep_df = pd.read_pickle(path_sleep)
+    else:
+        run_list = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))]
+        run_list.remove('All')
+        EEG_sleep_df = pd.DataFrame(columns=['dataset','subject','cond','TR','sleep','drowsiness','spectral','seconds'])
+        for r in run_list:
+            file_path    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+r+'_EEG_sleep.pkl')
+            run_sleep_df = pd.read_pickle(file_path)
+            EEG_sleep_df = EEG_sleep_df.append(run_sleep_df).reset_index(drop = True)
+    for i in range(0,TIME-WL_trs+1):
+        sleep_list = np.array([x for x in EEG_sleep_df.loc[i:i+(WL_trs-1), 'sleep']])
+        sleep_color_rgb_temp.loc[i, 'sleep'] = int(np.nanmean(sleep_list))
+    for i,idx in enumerate(sleep_color_rgb_temp.index):
+        if sleep_color_rgb_temp.loc[idx, 'sleep'] == 0:
+            sleep_color_rgb_temp.loc[idx, 'sleep_color_rgb'] = (77,208,225)
+        elif sleep_color_rgb_temp.loc[idx, 'sleep'] == 1:
+            sleep_color_rgb_temp.loc[idx, 'sleep_color_rgb'] = (41,182,246)
+        elif sleep_color_rgb_temp.loc[idx, 'sleep'] == 2:
+            sleep_color_rgb_temp.loc[idx, 'sleep_color_rgb'] = (33,150,243)
+        elif sleep_color_rgb_temp.loc[idx, 'sleep'] == 3:
+            sleep_color_rgb_temp.loc[idx, 'sleep_color_rgb'] = (57,73,171)
+        else:
+            sleep_color_rgb_temp.loc[idx, 'sleep_color_rgb'] = (204,209,209)
+    LE3D_df['sleep_color_rgb'] = sleep_color_rgb_temp['sleep_color_rgb']
+    
     # Window Names
     LE3D_df['label'] = winInfo['winNames']
     return LE3D_df

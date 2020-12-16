@@ -34,6 +34,7 @@ import os
 import pandas as pd
 import xarray as xr
 import numpy as np
+from statistics import mean
 from nilearn.plotting import plot_matrix
 from scipy.signal import tukey, hamming
 from sklearn.manifold  import SpectralEmbedding
@@ -109,7 +110,6 @@ dim_red_method         = 'PCA'
 dim_red_method_percent = 97.5
 le_num_dims            = 3
 le_k_NN                = 100
-
 
 path_ts        = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','errts.'+SBJ+'.'+atlas_name+'.wl'+str(WL_sec).zfill(3)+'s.fanaticor_ts.1D')
 path_outdir    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
@@ -216,7 +216,7 @@ print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
 
 # Put the embeddings into a dataframe (for saving and plotting)
 # -------------------------------------------------------------
-LE3D_df = lapacian_dataframe(se_X,winInfo,RUN)
+LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs)
 LE3D_df.head()
 LE3D_df.to_pickle(out_lem_path)
 
