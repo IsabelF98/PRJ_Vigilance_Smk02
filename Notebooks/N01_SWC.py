@@ -216,7 +216,7 @@ print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
 
 # Put the embeddings into a dataframe (for saving and plotting)
 # -------------------------------------------------------------
-LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs)
+LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max)
 LE3D_df.head()
 LE3D_df.to_pickle(out_lem_path)
 
@@ -226,13 +226,16 @@ pn.extension('plotly')
 player     = pn.widgets.Player(name='Player', start=0, end=winInfo['numWins'], value=1, loop_policy='loop', width=800, step=1)
 @pn.depends(player.param.value)
 def plot_embed3d(max_win):
+    group      = 'Sleep Stage'
+    color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
     output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
                            LE3D_df['y_norm'][0:max_win],
-                           LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['color_rgb'][0:max_win],
-                           size=5, 
+                           LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df[group].map(color_key),
+                           show_legend=True,
+                           size=5,
                            xlim=(-1,1), 
                            ylim=(-1,1), 
-                           zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=800, width=800)
+                           zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
     return output
 pn.Column(player,plot_embed3d)
 
