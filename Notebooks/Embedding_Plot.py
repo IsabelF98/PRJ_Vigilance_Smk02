@@ -66,7 +66,7 @@ SubjectList = list(SubDict.keys())
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
 RunSelect  = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60]) # Select window lenght
-ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time Color','Sleep Color']) # Select color setting for plot
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time','Sleep','Motion']) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 def update_run(event):
@@ -141,18 +141,40 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     """
     LE3D_df = load_data(SBJ,RUN,WL_sec)
     if COLOR == 'No Color':
-        plot_color = LE3D_df['no_color_rgb']
-    if COLOR == 'Time Color':
-        plot_color = LE3D_df['time_color_rgb']
-    if COLOR == 'Sleep Color':
-        plot_color = LE3D_df['sleep_color_rgb']
-    output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
-                           LE3D_df['y_norm'][0:max_win],
-                           LE3D_df['z_norm'][0:max_win])).opts(color=plot_color[0:max_win],
-                           size=5, 
-                           xlim=(-1,1), 
-                           ylim=(-1,1), 
-                           zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+        output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
+                               LE3D_df['y_norm'][0:max_win],
+                               LE3D_df['z_norm'][0:max_win])).opts(size=5,
+                               xlim=(-1,1), 
+                               ylim=(-1,1), 
+                               zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+    if COLOR == 'Time':
+        output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
+                               LE3D_df['y_norm'][0:max_win],
+                               LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df.index,
+                               colorbar=True,
+                               size=5,
+                               xlim=(-1,1), 
+                               ylim=(-1,1), 
+                               zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+    if COLOR == 'Sleep':
+        color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
+        output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
+                               LE3D_df['y_norm'][0:max_win],
+                               LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['Sleep Stage'].map(color_key),
+                               show_legend=True,
+                               size=5,
+                               xlim=(-1,1), 
+                               ylim=(-1,1), 
+                               zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+    if COLOR == 'Motion':
+        output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
+                               LE3D_df['y_norm'][0:max_win],
+                               LE3D_df['z_norm'][0:max_win])).opts(color=LE3D_df['Motion'],
+                               colorbar=True,
+                               size=5,
+                               xlim=(-1,1), 
+                               ylim=(-1,1), 
+                               zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
     return output
 
 
