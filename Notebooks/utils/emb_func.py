@@ -42,11 +42,11 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
             EEG_sleep_df = EEG_sleep_df.append(run_sleep_df).reset_index(drop = True)
     for i in range(0,TIME-WL_trs+1):
         sleep_list = np.array([x for x in EEG_sleep_df.loc[i:i+(WL_trs-1), 'sleep']])
-        sleep_mean = np.nanmean(sleep_list)
-        if np.isnan(sleep_mean) == True:
-            sleep_temp.loc[i, 'Sleep Value'] = sleep_mean
+        sleep_median = np.median(sleep_list)
+        if np.isnan(sleep_median) == True:
+            sleep_temp.loc[i, 'Sleep Value'] = sleep_median
         else:
-            sleep_temp.loc[i, 'Sleep Value'] = int(sleep_mean)
+            sleep_temp.loc[i, 'Sleep Value'] = int(sleep_median)
     for i,idx in enumerate(sleep_temp.index):
         if sleep_temp.loc[idx, 'Sleep Value'] == 0:
             sleep_temp.loc[idx, 'Sleep Stage'] = 'Wake'
@@ -66,7 +66,7 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     mot_file_path = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','motion_deriv.1D')
     temp_mot_df   = pd.read_csv(mot_file_path,sep=' ',header=None,names=['trans_dx','trans_dy','trans_dz','rot_dx','rot_dy','rot_dz'])
     if RUN != 'All':
-        mot_df = pd.DataFrame(temp_mot_df.loc[tp_min:tp_max])
+        mot_df = pd.DataFrame(temp_mot_df.loc[tp_min:tp_max]).reset_index(drop = True)
     else:
         mot_df = pd.DataFrame(temp_mot_df)
     mot_df['FD'] = abs(mot_df['trans_dx']) + abs(mot_df['trans_dy']) + abs(mot_df['trans_dz']) + abs(np.deg2rad(mot_df['rot_dx'])*50) + abs(np.deg2rad(mot_df['rot_dy'])*50) + abs(np.deg2rad(mot_df['rot_dz'])*50)

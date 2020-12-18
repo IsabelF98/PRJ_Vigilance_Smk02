@@ -143,7 +143,8 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     if COLOR == 'No Color':
         output = hv.Scatter3D((LE3D_df['x_norm'][0:max_win],
                                LE3D_df['y_norm'][0:max_win],
-                               LE3D_df['z_norm'][0:max_win])).opts(size=5,
+                               LE3D_df['z_norm'][0:max_win])).opts(
+                               size=5,
                                xlim=(-1,1), 
                                ylim=(-1,1), 
                                zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
