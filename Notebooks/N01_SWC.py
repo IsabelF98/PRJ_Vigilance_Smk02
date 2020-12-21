@@ -175,7 +175,7 @@ pn.Row(fc_matrix_plot, pn.Column(ts_carpet_plot,ts_roi_plot))
 
 ts_pca_df, pca_plot, pca = reduce_dimensionality_pca(ts_df,dim_red_method_percent,sbj_id=SBJ)
 pickle.dump(pca, open(out_pca_path, "wb" ) )
-ts_pca_df.to_pickle(out_pcats_path)
+#ts_pca_df.to_pickle(out_pcats_path)
 # -
 
 pca_plot

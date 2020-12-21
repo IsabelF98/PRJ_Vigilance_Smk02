@@ -16,9 +16,17 @@ def load_data(path_ts,RUN,tp_min,tp_max):
     ts_xr      = xr.DataArray(ts_df.values,dims=['Time [TRs]','ROIs']) # Xarray frame of data
     return ts_df,Nacq,Nrois,roi_names,ts_xr
 
+def winner_takes_all(my_array):
+    if np.isnan(np.sum(my_array)) == True:
+        my_array[np.isnan(my_array)] = 4
+    my_array = my_array.astype(int)
+    counts = np.bincount(my_array)
+    winner = np.argmax(counts)
+    return winner
+
 def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
-    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','Sleep Value','Sleep Stage','Motion','label'])
+    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','Run','Sleep Value','Sleep Stage','Motion','label'])
     LE3D_df['x'] = se_X[:,0]
     LE3D_df['y'] = se_X[:,1]
     LE3D_df['z'] = se_X[:,2]
@@ -26,6 +34,20 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     # I checked a few examples and the structure is the same, but the scale is different. To be able to represent all cases
     # on the same scale (and given that the dimensions are meaningless), I create this normalized version of the low dimensional embedding
     LE3D_df[['x_norm','y_norm','z_norm']]= LE3D_df[['x','y','z']]/LE3D_df[['x','y','z']].max()
+    
+    # Organize by run for 'All' run
+    runs_temp = pd.DataFrame(LE3D_df['Run'])
+    if RUN == 'All':
+        time_list = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SBJ])-1)] # List of TR's in each run
+        run_list = ['SleepAscending','SleepDescending','SleepRSER','WakeAscending','WakeDescending','WakeRSER']
+        x=0
+        for i in range(len(time_list)):
+            runs_temp.loc[x:(x-1)+time_list[i]-(WL_trs-1), 'Run'] = [run_list[i]]
+            x=x+time_list[i]-(WL_trs-1)
+            if i != len(time_list)-1:
+                runs_temp.loc[x:(x-1)+(WL_trs-1), 'Run'] = ['Inbetween Runs']
+                x=x+(WL_trs-1)
+        LE3D_df['Run'] = runs_temp['Run']
     
     # Sleep-based data
     sleep_temp = pd.DataFrame(columns=['Sleep Value','Sleep Stage'])
@@ -41,12 +63,9 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
             run_sleep_df = pd.read_pickle(sleep_file_path)
             EEG_sleep_df = EEG_sleep_df.append(run_sleep_df).reset_index(drop = True)
     for i in range(0,TIME-WL_trs+1):
-        sleep_list = np.array([x for x in EEG_sleep_df.loc[i:i+(WL_trs-1), 'sleep']])
-        sleep_median = np.median(sleep_list)
-        if np.isnan(sleep_median) == True:
-            sleep_temp.loc[i, 'Sleep Value'] = sleep_median
-        else:
-            sleep_temp.loc[i, 'Sleep Value'] = int(sleep_median)
+        sleep_array  = np.array([x for x in EEG_sleep_df.loc[i:i+(WL_trs-1), 'sleep']])
+        sleep_val = winner_takes_all(sleep_array)
+        sleep_temp.loc[i, 'Sleep Value'] = int(sleep_val)
     for i,idx in enumerate(sleep_temp.index):
         if sleep_temp.loc[idx, 'Sleep Value'] == 0:
             sleep_temp.loc[idx, 'Sleep Stage'] = 'Wake'
@@ -56,7 +75,7 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
             sleep_temp.loc[idx, 'Sleep Stage'] = 'Stage 2'
         elif sleep_temp.loc[idx, 'Sleep Value'] == 3:
             sleep_temp.loc[idx, 'Sleep Stage'] = 'Stage 3'
-        else:
+        elif sleep_temp.loc[idx, 'Sleep Value'] == 4:
             sleep_temp.loc[idx, 'Sleep Stage'] = 'Undetermined'
     LE3D_df['Sleep Value'] = sleep_temp['Sleep Value']
     LE3D_df['Sleep Stage'] = sleep_temp['Sleep Stage']
@@ -71,8 +90,8 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
         mot_df = pd.DataFrame(temp_mot_df)
     mot_df['FD'] = abs(mot_df['trans_dx']) + abs(mot_df['trans_dy']) + abs(mot_df['trans_dz']) + abs(np.deg2rad(mot_df['rot_dx'])*50) + abs(np.deg2rad(mot_df['rot_dy'])*50) + abs(np.deg2rad(mot_df['rot_dz'])*50)
     for i in range(0,TIME-WL_trs+1):
-        mot_list = np.array([x for x in mot_df.loc[i:i+(WL_trs-1), 'FD']])
-        mot_mean = np.nanmean(mot_list)
+        mot_array = np.array([x for x in mot_df.loc[i:i+(WL_trs-1), 'FD']])
+        mot_mean  = np.nanmean(mot_array)
         mot_temp.loc[i, 'Framewise Displacement'] = mot_mean
     LE3D_df['Motion'] = mot_temp['Framewise Displacement']
     
