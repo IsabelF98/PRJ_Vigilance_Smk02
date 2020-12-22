@@ -64,7 +64,7 @@ SubjectList = list(SubDict.keys())
 # --------------------------------------------------
 
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
-RunSelect  = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
+RunSelect    = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60]) # Select window lenght
 ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion']) # Select color setting for plot
 
@@ -147,7 +147,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         output = output.opts(size=5,
                              xlim=(-1,1), 
                              ylim=(-1,1), 
-                             zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+                             zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700)
     if COLOR == 'Time/Run':
         if RUN != 'All':
             df = LE3D_df[['x_norm','y_norm','z_norm']].copy()
@@ -157,47 +157,49 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
             output = output.opts(color='Time [sec]',
                                  cmap='plasma',
                                  colorbar=True,
+                                 clim=(0,get_num_tp(SBJ,RUN,WL_sec)),
                                  size=5,
                                  xlim=(-1,1), 
                                  ylim=(-1,1), 
-                                 zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+                                 zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700)
         else:
             df = LE3D_df[['x_norm','y_norm','z_norm','Run']].copy()
             df = df.infer_objects()
             color_key  = {'SleepAscending':'red','SleepDescending':'orange','SleepRSER':'yellow','WakeAscending':'purple','WakeDescending':'blue','WakeRSER':'green','Inbetween Runs':'gray'}
             for i,idx in enumerate(df.index):
-                df.loc[idx,'Run'] = color_key[df.loc[idx,'Run']]
-            output = hv.Scatter3D(df[0:max_win], kdims=['x_norm','y_norm','z_norm'],vdims='Run')
-            output = output.opts(color='Run',
-                                 show_legend=True,
-                                 size=5,
-                                 xlim=(-1,1), 
-                                 ylim=(-1,1), 
-                                 zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+                df.loc[idx,'color'] = color_key[df.loc[idx,'Run']]
+            dict_plot={t:hv.Scatter3D(df[0:max_win].query(f'Run=="{t}"'),kdims=['x_norm','y_norm','z_norm'],vdims=['Run','color']).opts(show_legend=True,color='color',size=5,fontsize={'legend':8}) for t in df[0:max_win].Run.unique()}
+            output = hv.NdOverlay(dict_plot).opts(
+                              xlim=(-1,1), 
+                              ylim=(-1,1), 
+                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=700, width=700)
+            output.get_dimension('Element').label='Run '
     if COLOR == 'Sleep':
         df = LE3D_df[['x_norm','y_norm','z_norm','Sleep Stage']].copy()
         df = df.infer_objects()
+        df = df.rename(columns={"Sleep Stage": "Sleep_Stage"})
         color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
         for i,idx in enumerate(df.index):
-                df.loc[idx,'Sleep Stage'] = color_key[df.loc[idx,'Sleep Stage']]
-        output = hv.Scatter3D(df[0:max_win], kdims=['x_norm','y_norm','z_norm'],vdims='Sleep Stage')
-        output = output.opts(color='Sleep Stage',
-                             show_legend=True,
-                             size=5,
-                             xlim=(-1,1), 
-                             ylim=(-1,1), 
-                             zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600)
+                df.loc[idx,'color'] = color_key[df.loc[idx,'Sleep_Stage']]
+        dict_plot={t:hv.Scatter3D(df[0:max_win].query(f'Sleep_Stage=="{t}"'),kdims=['x_norm','y_norm','z_norm'],vdims=['Sleep_Stage','color']).opts(show_legend=True,color='color',size=5,fontsize={'legend':8}) for t in df[0:max_win].Sleep_Stage.unique()}
+        output = hv.NdOverlay(dict_plot).opts(
+                              xlim=(-1,1), 
+                              ylim=(-1,1), 
+                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=700, width=700)
+        output.get_dimension('Element').label='Sleep_Stage '
     if COLOR == 'Motion':
         df = LE3D_df[['x_norm','y_norm','z_norm','Motion']].copy()
+        max_FD = df['Motion'].max()
         df = df.infer_objects()
         output = hv.Scatter3D(df[0:max_win], kdims=['x_norm','y_norm','z_norm'],vdims='Motion')
         output = output.opts(opts.Scatter3D(color='Motion',
                                             cmap='jet',
                                             colorbar=True,
+                                            clim=(0,max_FD),
                                             size=5,
                                             xlim=(-1,1), 
                                             ylim=(-1,1), 
-                                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=600, width=600))
+                                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700))
     return output
 
 
@@ -208,16 +210,44 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
 
 pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
 
-# +
+# ***
+# ## Testing
+
 data = np.random.randn(10, 3).cumsum(axis=0)
 df   = pd.DataFrame(data,columns=['x','y','z'])
 df['type'] = ['A','A','B','C','A','C','C','B','C','A']
 color_key  = {'A':'red', 'B':'blue','C':'green'}
 for i,idx in enumerate(df.index):
     df.loc[idx,'color'] = color_key[df.loc[idx,'type']]
+dict_plot={t:hv.Scatter3D(df.query(f'type=="{t}"'),kdims=['x','y','z'],vdims=['type','color']).opts(show_legend=True,color='color',size=3) for t in df.type.unique()}
+h=hv.NdOverlay(dict_plot)
+h.get_dimension('Element').label='type '
+h
+# +
+data_dict={'sub-01':[('run1',100),('run2',100),('run3',60)],'sub-02':[('run1',200),('run2',100),('run3',50)],'sub-03':[('run1',100),('run2',400)]}
+subject_list = list(data_dict.keys())
 
-scatter = hv.Scatter3D(df, kdims=['x','y','z'], vdims=['type','color']).opts(color='color', show_legend=True, size=3)
-scatter
-# -
+subject_select = pn.widgets.Select(name='Select Subject',options=subject_list,value=subject_list[0])
+run_select     = pn.widgets.Select(name='Select Run', options=[data_dict[subject_select.value][i][0] for i in range(0,len(data_dict[subject_select.value]))])
+def update_run(event):
+    run_select.options = [data_dict[event.new][i][0] for i in range(0,len(data_dict[event.new]))]
+subject_select.param.watch(update_run,'value')
 
+@pn.depends(subject_select.param.value,run_select.param.value)
+def get_num_tp(SBJ,RUN):
+    num_tp = [data_dict[subject_select.value][i][1] for i in range(0,len(data_dict[subject_select.value])) if data_dict[subject_select.value][i][0] == run_select.value][0]
+    return num_tp
 
+player = pn.widgets.Player(name='Player', start=0, end=get_num_tp(subject_select.value,run_select.value), value=1,loop_policy='loop', width=800, step=1)
+def update_player(event1,event2):
+    player.end = get_num_tp(event1.new,event2.new)
+subject_select.param.watch(update_player,'value')
+run_select.param.watch(update_player,'value')
+
+@pn.depends(player.param.value)
+def print_player_value(value):
+    value = str(value)
+    markdown = pn.pane.Markdown(value)
+    return markdown
+
+pn.Column(pn.Row(subject_select,run_select),player,print_player_value)
