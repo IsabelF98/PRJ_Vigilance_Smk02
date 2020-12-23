@@ -64,19 +64,22 @@ PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 # Load data frame of valid subjects info
 sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
 
-# Dictionary of subject with valid run name, number of time points, and time region
-SubDict = {}
-for i,idx in enumerate(sub_DF.index):
+# Dictionary of subject with valid runs
+# The dictionary is organized by subject. Keys are the subject and the values are a list of tuples as such:
+# (run name, number of TR's in the data, min index of run in the concatinated data, max index of run in the concatinated data)
+SubDict = {} # Empty dictionary
+for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
     sbj  = sub_DF.loc[idx]['Sbj']
     run  = sub_DF.loc[idx]['Run']
     time = sub_DF.loc[idx]['Time']
     tp_min = sub_DF.loc[idx]['Time Point Min']
     tp_max = sub_DF.loc[idx]['Time Point Max']
     if sbj in SubDict.keys():
-        SubDict[sbj].append((run,time,tp_min,tp_max))
+        SubDict[sbj].append((run,time,tp_min,tp_max)) # Add run tuple (described above)
     else:
-        SubDict[sbj] = [(run,time,tp_min,tp_max)]
+        SubDict[sbj] = [(run,time,tp_min,tp_max)] # If subject is not already in the directory a new element is created
 SubjectList = list(SubDict.keys()) # list of subjects        
+# Add 'All' option to subject diction for each subject. 'All' meaning the concatinated data 
 for sbj in SubjectList:
     SubDict[sbj].append(('All',sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj]))),0,sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj])))-1))
 
@@ -90,12 +93,13 @@ WindowSelect = pn.widgets.Select(name='Select Window Length', options=[30,46,60]
 # Updates available runs given SubjSelect value
 def update_run(event):
     RunSelect.options = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))]
-    
 SubjSelect.param.watch(update_run, 'value')
 
+# Displays the three widgets created above
 pn.Row(SubjSelect, RunSelect, WindowSelect)
 
 # +
+# Variables for running embeddings
 SBJ                    = SubjSelect.value
 RUN                    = RunSelect.value
 TIME                   = [SubDict[SubjSelect.value][i][1] for i in range(0,len(SubDict[SubjSelect.value])) if SubDict[SubjSelect.value][i][0] == RunSelect.value][0]
@@ -111,6 +115,7 @@ dim_red_method_percent = 97.5
 le_num_dims            = 3
 le_k_NN                = 100
 
+# Paths to input and output data
 path_ts        = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','errts.'+SBJ+'.'+atlas_name+'.wl'+str(WL_sec).zfill(3)+'s.fanaticor_ts.1D')
 path_outdir    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
 out_prefix     = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
@@ -119,6 +124,7 @@ out_pcats_path = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(di
 out_swc_path   = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.swcorr.pkl')
 out_lem_path   = osp.join(path_outdir,out_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.le'+str(le_num_dims)+'d_knn'+str(le_k_NN).zfill(3)+'.pkl')
 
+# Prints run information on out script
 print('++ INFO: Selection Parameters: ')
 print(' + Subject         : %s' % SBJ)
 print(' + Run.            : %s' % RUN)
@@ -175,7 +181,7 @@ pn.Row(fc_matrix_plot, pn.Column(ts_carpet_plot,ts_roi_plot))
 
 ts_pca_df, pca_plot, pca = reduce_dimensionality_pca(ts_df,dim_red_method_percent,sbj_id=SBJ)
 pickle.dump(pca, open(out_pca_path, "wb" ) )
-#ts_pca_df.to_pickle(out_pcats_path)
+ts_pca_df.to_pickle(out_pcats_path)
 # -
 
 pca_plot
@@ -207,6 +213,8 @@ xr.DataArray(swc_Z.values.T,dims=['Time [Window ID]','PCA Connection']).hvplot.i
 # +
 # %%time
 
+# Generate Lapacian embeddings
+# ----------------------------
 se             = SpectralEmbedding(n_components=le_num_dims, affinity='precomputed', n_jobs=32, random_state=seed)
 X_affinity     = kneighbors_graph(swc_Z.T,le_k_NN,include_self=True,n_jobs=32, metric=dis_corr)
 X_affinity     = 0.5 * (X_affinity + X_affinity.T)

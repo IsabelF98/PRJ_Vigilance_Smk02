@@ -39,18 +39,21 @@ PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
 sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
 
 # Dictionary of subject with valid runs
-SubDict = {}
-for i,idx in enumerate(sub_DF.index):
+# The dictionary is organized by subject. Keys are the subject and the values are a list of tuples as such:
+# (run name, number of TR's in the data, min index of run in the concatinated data, max index of run in the concatinated data)
+SubDict = {} # Empty dictionary
+for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
     sbj  = sub_DF.loc[idx]['Sbj']
     run  = sub_DF.loc[idx]['Run']
     time = sub_DF.loc[idx]['Time']
     tp_min = sub_DF.loc[idx]['Time Point Min']
     tp_max = sub_DF.loc[idx]['Time Point Max']
     if sbj in SubDict.keys():
-        SubDict[sbj].append((run,time,tp_min,tp_max))
+        SubDict[sbj].append((run,time,tp_min,tp_max)) # Add run tuple (described above)
     else:
-        SubDict[sbj] = [(run,time,tp_min,tp_max)]
+        SubDict[sbj] = [(run,time,tp_min,tp_max)] # If subject is not already in the directory a new element is created
 SubjectList = list(SubDict.keys()) # list of subjects        
+# Add 'All' option to subject diction for each subject. 'All' meaning the concatinated data
 for sbj in SubjectList:
     SubDict[sbj].append(('All',sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj]))),0,sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj])))-1))
 
@@ -137,3 +140,4 @@ print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
 # Put the embeddings into a dataframe (for saving and plotting)
 LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max)
 LE3D_df.to_pickle(out_lem_path)
+print ('++ INFO: Script Complete')
