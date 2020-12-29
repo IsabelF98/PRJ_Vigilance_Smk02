@@ -227,8 +227,63 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
 # ***
 # ## Plot Display
 
+# Add a text box to describe run
+@pn.depends(RunSelect.param.value)
+def run_description(RUN):
+    if RUN == 'All':
+        output = pn.pane.Markdown("""
+                                  ### All:
+                                  This is the concatenated  data of all the runs. The order in which they are concatenated, 
+                                  if such runs exist for that subject, are SleepAscending, Sleep Descending, Sleep RSER, 
+                                  Wake Ascending, Wake Descending, and Wake RSER.
+                                  """)
+    if RUN == 'SleepAscending':
+        output = pn.pane.Markdown("""
+                                  ### Sleep Ascending:
+                                  In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
+                                  asleep. While in the scanner a repeating 10 tones in ascending order were played to
+                                  the subject.
+                                  """)
+    if RUN == 'SleepDescending':
+        output = pn.pane.Markdown("""
+                                  ### Sleep Descending:
+                                  In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
+                                  asleep with eyes closed. While in the scanner a repeating 10 tones in descending order
+                                  were played to the subject.
+                                  """)
+    if RUN == 'SleepRSER':
+        output = pn.pane.Markdown("""
+                                  ### Sleep RSER:
+                                  In this run the subject was placed in the scanner for around 10 minuets and asked to fall 
+                                  asleep with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
+                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. 
+                                  """)
+    if RUN == 'WakeAscending':
+        output = pn.pane.Markdown("""
+                                  ### Wake Ascending:
+                                  In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
+                                  awake. While in the scanner a repeating 10 tones in ascending order were played to
+                                  the subject.
+                                  """)
+    if RUN == 'WakeDescending':
+        output = pn.pane.Markdown("""
+                                  ### Wake Descending:
+                                  In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
+                                  awake with eyes closed. While in the scanner a repeating 10 tones in descending order
+                                  were played to the subject.
+                                  """)
+    if RUN == 'WakeRSER':
+        output = pn.pane.Markdown("""
+                                  ### Wake RSER:
+                                  In this run the subject was placed in the scanner for around 10 minuets and asked to stay 
+                                  awake with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
+                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. 
+                                  """)
+    return output
+
+
 # Display widgets player and plot
-pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
+pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row(plot_embed3d,run_description))
 
 # ***
 # ## Testing
