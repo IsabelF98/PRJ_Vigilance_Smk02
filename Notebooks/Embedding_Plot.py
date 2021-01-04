@@ -74,7 +74,7 @@ SubjSelect.param.watch(update_run,'value')
 # ***
 # ## Load Data
 
-@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value) # Make function dependint on subject, run, and window length widget values
+#@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value) # Make function dependint on subject, run, and window length widget values
 def load_data(SBJ,RUN,WL_sec):
     """
     This function loads the data needed for plotting the embeddings.
@@ -225,6 +225,50 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
 
 
 # ***
+# ## Euclidean Distance Matrix
+
+def distance_3D(x1,y1,z1,x2,y2,z2):
+    """
+    This fuction computes the Euclidean distance between 2 3D points.
+    Where point 1 is (x1,y1,z1) and point 2 is (x2,y2,z2).
+    The distance equation is sqrt((x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2).
+    The function outputs the distance as float number.
+    """
+    dist = np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
+    return dist
+
+
+def distance_matrix(SBJ,RUN,WL_sec):
+    """
+    This fuction plots a heat map of the distnaces of each window for a given run.
+    The inputs for the fuction (subject, run, and window leght) allows the user to choose what run and window leghth
+    they with to plot for a given subject.
+    The distance between two windows (i.e. points on the 3D plot) is computed using distance_3D() created above.
+    The fuction plots the heat map using holoviews hv.HeatMap().
+    The x and y axes of the plot are the two windows in which you are finding the distance.
+    The z value is that distance.
+    """
+    LE3D_df = load_data(SBJ,RUN,WL_sec) # Load embedding data
+    data_df = LE3D_df[['x_norm','y_norm','z_norm']].copy() # New data frame of only x_norm, y_norm, and z_norm values
+    dist_df = pd.DataFrame(columns=['Window1','Window2','Distance']) # Empty data frame to append window number and distance value
+    for win1 in range(0,data_df.shape[0]): # Itterate through all windows (window 1)
+        x1 = data_df.loc[win1,'x_norm'] # Assighn x value for window 1 to x1
+        y1 = data_df.loc[win1,'y_norm'] # Assighn y value for window 1 to y1
+        z1 = data_df.loc[win1,'z_norm'] # Assighn z value for window 1 to z1
+        for win2 in range(0,data_df.shape[0]): # Itterate through all windows to compute distance with window 1 (window 2)
+            x2 = data_df.loc[win2,'x_norm'] # Assighn x value for window 2 to x1
+            y2 = data_df.loc[win2,'y_norm'] # Assighn y value for window 2 to y1
+            z2 = data_df.loc[win2,'z_norm'] # Assighn z value for window 2 to z1
+            # Append window numbers and distance to distance data frame
+            dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)] 
+    output = hv.HeatMap(dist_df).opts(colorbar=True) # Plot heat map of distances
+    return output
+
+
+distance_matrix('sub-S10','SleepRSER',30)
+
+
+# ***
 # ## Plot Display
 
 # Add a text box to describe run
@@ -242,42 +286,44 @@ def run_description(RUN):
                                   ### Sleep Ascending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
                                   asleep. While in the scanner a repeating 10 tones in ascending order were played to
-                                  the subject.
+                                  the subject. The subject is not required to respond to the tones.
                                   """)
     if RUN == 'SleepDescending':
         output = pn.pane.Markdown("""
                                   ### Sleep Descending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
                                   asleep with eyes closed. While in the scanner a repeating 10 tones in descending order
-                                  were played to the subject.
+                                  were played to the subject. The subject is not required to respond to the tones.
                                   """)
     if RUN == 'SleepRSER':
         output = pn.pane.Markdown("""
                                   ### Sleep RSER:
                                   In this run the subject was placed in the scanner for around 10 minuets and asked to fall 
                                   asleep with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
-                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. 
+                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. The
+                                  subject is not required to respond to the tones. 
                                   """)
     if RUN == 'WakeAscending':
         output = pn.pane.Markdown("""
                                   ### Wake Ascending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
                                   awake. While in the scanner a repeating 10 tones in ascending order were played to
-                                  the subject.
+                                  the subject. The subject is not required to respond to the tones.
                                   """)
     if RUN == 'WakeDescending':
         output = pn.pane.Markdown("""
                                   ### Wake Descending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
                                   awake with eyes closed. While in the scanner a repeating 10 tones in descending order
-                                  were played to the subject.
+                                  were played to the subject. The subject is not required to respond to the tones.
                                   """)
     if RUN == 'WakeRSER':
         output = pn.pane.Markdown("""
                                   ### Wake RSER:
                                   In this run the subject was placed in the scanner for around 10 minuets and asked to stay 
                                   awake with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
-                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. 
+                                  5 minuets the subject was asked to continue to rest and were played tones periodicaly. The
+                                  subject is not required to respond to the tones.
                                   """)
     return output
 
