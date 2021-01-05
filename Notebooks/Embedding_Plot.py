@@ -74,7 +74,7 @@ SubjSelect.param.watch(update_run,'value')
 # ***
 # ## Load Data
 
-#@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value) # Make function dependint on subject, run, and window length widget values
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value) # Make function dependint on subject, run, and window length widget values
 def load_data(SBJ,RUN,WL_sec):
     """
     This function loads the data needed for plotting the embeddings.
@@ -261,7 +261,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
             z2 = data_df.loc[win2,'z_norm'] # Assighn z value for window 2 to z1
             # Append window numbers and distance to distance data frame
             dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)] 
-    output = hv.HeatMap(dist_df).opts(colorbar=True) # Plot heat map of distances
+    output = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True) # Plot heat map of distances
     return output
 
 
