@@ -265,6 +265,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
     return output
 
 
+# Example distance matrix for subject 10, run SleepRSER, and window length 30 sec
 distance_matrix('sub-S10','SleepRSER',30)
 
 
