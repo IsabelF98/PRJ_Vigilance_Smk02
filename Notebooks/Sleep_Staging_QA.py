@@ -52,65 +52,46 @@ def winner_takes_all(my_array):
     return winner
 
 
-@pn.depends(SubjSelect.param.value,WindowSelect.param.value)
-def load_EEG_data(SBJ,WL,window=False):
+def sliding_window(df,WL,fill_TR=False):
+    TIME = df.shape[0]
+    WL_trs = int(WL/2)
+    sleep_stage_df = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'])
+    for i in range(0,TIME-WL_trs+1):
+        sleep_array  = np.array([x for x in df.loc[i:i+(WL_trs-1), 'sleep value']])
+        sleep_val    = winner_takes_all(sleep_array)
+        sleep_stage_df.loc[i, 'sleep value'] = int(sleep_val)
+    if fill_TR == True:
+        # ADD CODE TO FILL ALL TR VALUES
+        sleep_stage_df = sleep_stage_df
+    return sleep_stage_df
+
+
+def assign_sleep_stage(df):
+    for i,idx in enumerate(df.index):
+        if df.loc[idx, 'sleep value'] == 0:
+            df.loc[idx, 'sleep stage'] = 'Wake'
+        elif df.loc[idx, 'sleep value'] == 1:
+            df.loc[idx, 'sleep stage'] = 'Stage 1'
+        elif df.loc[idx, 'sleep value'] == 2:
+            df.loc[idx, 'sleep stage'] = 'Stage 2'
+        elif df.loc[idx, 'sleep value'] == 3:
+            df.loc[idx, 'sleep stage'] = 'Stage 3'
+        else:
+            df.loc[idx, 'sleep stage'] = 'Undetermined'
+    return df
+
+
+def load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False):
     PRJDIR   = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
-    sleep_df = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-    for RUN in ['SleepAscending','SleepDescending','SleepRSER']:
-        DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
-        if osp.exists(DATADIR) == True:
-            DATA_df  = pd.read_pickle(DATADIR)
-            temp_df  = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-            if window == False:
-                temp_df['sleep_value'] = DATA_df['sleep']
-            if window == True:
-                TIME = DATA_df.shape[0]
-                WL_trs = int(WL/2)
-                for i in range(0,TIME-WL_trs+1):
-                    sleep_array  = np.array([x for x in DATA_df.loc[i:i+(WL_trs-1), 'sleep']])
-                    sleep_val = winner_takes_all(sleep_array)
-                    temp_df.loc[i, 'sleep_value'] = int(sleep_val)
-            sleep_df = sleep_df.append(temp_df).reset_index(drop = True)
-    for i,idx in enumerate(sleep_df.index):
-        if sleep_df.loc[idx, 'sleep_value'] == 0:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Wake'
-        elif sleep_df.loc[idx, 'sleep_value'] == 1:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 1'
-        elif sleep_df.loc[idx, 'sleep_value'] == 2:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 2'
-        elif sleep_df.loc[idx, 'sleep_value'] == 3:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 3'
-        else:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Undetermined'
-        
-    wake_df = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
-        DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
-        if osp.exists(DATADIR) == True:
-            DATA_df  = pd.read_pickle(DATADIR)
-            temp_df  = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-            if window == False:
-                temp_df['sleep_value'] = DATA_df['sleep']
-            if window == True:
-                TIME = DATA_df.shape[0]
-                WL_trs = int(WL/2)
-                for i in range(0,TIME-WL_trs+1):
-                    sleep_array  = np.array([x for x in DATA_df.loc[i:i+(WL_trs-1), 'sleep']])
-                    sleep_val = winner_takes_all(sleep_array)
-                    temp_df.loc[i, 'sleep_value'] = int(sleep_val)
-            wake_df = wake_df.append(temp_df).reset_index(drop = True)
-    for i,idx in enumerate(wake_df.index):
-        if wake_df.loc[idx, 'sleep_value'] == 0:
-            wake_df.loc[idx, 'sleep_stage'] = 'Wake'
-        elif wake_df.loc[idx, 'sleep_value'] == 1:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 1'
-        elif wake_df.loc[idx, 'sleep_value'] == 2:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 2'
-        elif wake_df.loc[idx, 'sleep_value'] == 3:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 3'
-        else:
-            wake_df.loc[idx, 'sleep_stage'] = 'Undetermined'
-    return sleep_df,wake_df
+    DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
+    sleep_stage_df = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'])
+    if osp.exists(DATADIR) == True:
+        DATA_df  = pd.read_pickle(DATADIR)
+        sleep_stage_df['sleep value'] = DATA_df['sleep']
+    if window == True:
+        sleep_stage_df = sliding_window(sleep_stage_df,WL,fill_TR)
+    sleep_stage_df = assign_sleep_stage(sleep_stage_df)
+    return sleep_stage_df
 
 
 # ***
@@ -119,83 +100,73 @@ def load_EEG_data(SBJ,WL,window=False):
 
 @pn.depends(SubjSelect.param.value,WindowSelect.param.value)
 def sleep_bar_graph_TR(SBJ,WL):
-    sleep_df,wake_df = load_EEG_data(SBJ,WL,window=False)
-    percent_df = pd.DataFrame(columns=['Run','Sleep_Stage','Percent'])
-    sleep_list = list(sleep_df['sleep_stage'])
+    sleep_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['SleepAscending','SleepDescending','SleepRSER']:
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        sleep_df = sleep_df.append(temp_df).reset_index(drop = True)
+        
+    wake_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        wake_df = wake_df.append(temp_df).reset_index(drop = True)
+        
+    percent_df = pd.DataFrame(columns=['Run','Sleep Stage','Percent'])
+    
+    sleep_list = list(sleep_df['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Sleep',stage,(sleep_list.count(stage))/len(sleep_list)*100]
-    wake_list = list(wake_df['sleep_stage'])
+        
+    wake_list = list(wake_df['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Wake',stage,(wake_list.count(stage))/len(wake_list)*100]
     
     color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
-    output = hv.Bars(percent_df,kdims=['Run','Sleep_Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for '+SBJ)
+    output = hv.Bars(percent_df,kdims=['Run','Sleep Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for '+SBJ)
     return output
 
 
 pn.Column(SubjSelect,sleep_bar_graph_TR)
 
+
 # ***
 # ## Percent of Sleep Stages for All Subjects
 # The sleep stage data is the original sleep stage data and on a TR by TR basis.
 
-PRJDIR   = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
-sleep_df = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-wake_df = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-for SBJ in sub_list:
-
-    for RUN in ['SleepAscending','SleepDescending','SleepRSER']:
-        DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
-        if osp.exists(DATADIR) == True:
-            DATA_df  = pd.read_pickle(DATADIR)
-            temp_df  = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-            temp_df['sleep_value'] = DATA_df['sleep']
+def all_sleep_data_TR(sub_list):
+    WL = 0
+    sleep_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for SBJ in sub_list:
+        for RUN in ['SleepAscending','SleepDescending','SleepRSER']:
+            DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+            temp_df = DATA_df[['sleep value','sleep stage']].copy()
             sleep_df = sleep_df.append(temp_df).reset_index(drop = True)
-    for i,idx in enumerate(sleep_df.index):
-        if sleep_df.loc[idx, 'sleep_value'] == 0:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Wake'
-        elif sleep_df.loc[idx, 'sleep_value'] == 1:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 1'
-        elif sleep_df.loc[idx, 'sleep_value'] == 2:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 2'
-        elif sleep_df.loc[idx, 'sleep_value'] == 3:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Stage 3'
-        else:
-            sleep_df.loc[idx, 'sleep_stage'] = 'Undetermined'
         
-    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
-        DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
-        if osp.exists(DATADIR) == True:
-            DATA_df  = pd.read_pickle(DATADIR)
-            temp_df  = pd.DataFrame(columns=['sleep_value','sleep_stage'])
-            temp_df['sleep_value'] = DATA_df['sleep']
+    wake_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for SBJ in sub_list:
+        for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
+            DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+            temp_df = DATA_df[['sleep value','sleep stage']].copy()
             wake_df = wake_df.append(temp_df).reset_index(drop = True)
-    for i,idx in enumerate(wake_df.index):
-        if wake_df.loc[idx, 'sleep_value'] == 0:
-            wake_df.loc[idx, 'sleep_stage'] = 'Wake'
-        elif wake_df.loc[idx, 'sleep_value'] == 1:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 1'
-        elif wake_df.loc[idx, 'sleep_value'] == 2:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 2'
-        elif wake_df.loc[idx, 'sleep_value'] == 3:
-            wake_df.loc[idx, 'sleep_stage'] = 'Stage 3'
-        else:
-            wake_df.loc[idx, 'sleep_stage'] = 'Undetermined'
-
-# +
-percent_df = pd.DataFrame(columns=['Run','Sleep_Stage','Percent'])
-sleep_list = list(sleep_df['sleep_stage'])
-for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
-     percent_df.loc[len(percent_df.index)] = ['Sleep',stage,(sleep_list.count(stage))/len(sleep_list)*100]
-wake_list = list(wake_df['sleep_stage'])
-for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
-    percent_df.loc[len(percent_df.index)] = ['Wake',stage,(wake_list.count(stage))/len(wake_list)*100]
+        
+    percent_df = pd.DataFrame(columns=['Run','Sleep_Stage','Percent'])
     
+    sleep_list = list(sleep_df['sleep stage'])
+    for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
+        percent_df.loc[len(percent_df.index)] = ['Sleep',stage,(sleep_list.count(stage))/len(sleep_list)*100]
+        
+    wake_list = list(wake_df['sleep stage'])
+    for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
+        percent_df.loc[len(percent_df.index)] = ['Wake',stage,(wake_list.count(stage))/len(wake_list)*100]
+    
+    return percent_df
+
+
+all_percent_df = all_sleep_data_TR(sub_list)
 color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
-hv.Bars(percent_df,kdims=['Run','Sleep_Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=400,title='Sleep Stage Bar Graph for All Subjects')
+hv.Bars(all_percent_df,kdims=['Run','Sleep_Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for All Subjects')
 
-
-# -
 
 # ***
 # ## Comparing Percent of Sleep Stages by TR vs Window
@@ -203,49 +174,109 @@ hv.Bars(percent_df,kdims=['Run','Sleep_Stage']).opts(cmap=color_key,xlabel=' ',y
 
 @pn.depends(SubjSelect.param.value,WindowSelect.param.value)
 def sleep_bar_graph_WIN(SBJ,WL):
-    sleep_df,wake_df = load_EEG_data(SBJ,WL,window=True)
-    percent_df = pd.DataFrame(columns=['Run','Sleep_Stage','Percent'])
-    sleep_list = list(sleep_df['sleep_stage'])
+    sleep_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['SleepAscending','SleepDescending','SleepRSER']: 
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        sleep_df = sleep_df.append(temp_df).reset_index(drop = True)
+    
+    wake_df = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        wake_df = wake_df.append(temp_df).reset_index(drop = True)
+    
+    percent_df = pd.DataFrame(columns=['Run','Sleep Stage','Percent'])
+    
+    sleep_list = list(sleep_df['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Sleep',stage,(sleep_list.count(stage))/len(sleep_list)*100]
-    wake_list = list(wake_df['sleep_stage'])
+        
+    wake_list = list(wake_df['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Wake',stage,(wake_list.count(stage))/len(wake_list)*100]
     
     color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
-    output = hv.Bars(percent_df,kdims=['Run','Sleep_Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for '+SBJ)
+    output = hv.Bars(percent_df,kdims=['Run','Sleep Stage']).opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for All Subjects')
     return output
+
+
+pn.Column(pn.Row(SubjSelect,WindowSelect),sleep_bar_graph_TR,sleep_bar_graph_WIN)
 
 
 @pn.depends(SubjSelect.param.value,WindowSelect.param.value)
 def stacked_bar_plot(SBJ,WL):
-    sleep_df_WIN,wake_df_WIN = load_EEG_data(SBJ,WL,window=True)
-    sleep_df_TR,wake_df_TR   = load_EEG_data(SBJ,WL,window=False)
+    sleep_df_TR = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['SleepAscending','SleepDescending','SleepRSER']: 
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        sleep_df_TR = sleep_df_TR.append(temp_df).reset_index(drop = True)
+    
+    wake_df_TR = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        wake_df_TR = wake_df_TR.append(temp_df).reset_index(drop = True)
+        
+    sleep_df_WIN = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['SleepAscending','SleepDescending','SleepRSER']: 
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        sleep_df_WIN = sleep_df_WIN.append(temp_df).reset_index(drop = True)
+    
+    wake_df_WIN = pd.DataFrame(columns=['sleep value','sleep stage'])
+    for RUN in ['WakeAscending','WakeDescending','WakeRSER']:
+        DATA_df = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+        temp_df = DATA_df[['sleep value','sleep stage']].copy()
+        wake_df_WIN = wake_df_WIN.append(temp_df).reset_index(drop = True)
 
-    percent_df = pd.DataFrame(columns=['Time','Run','Sleep_Stage','Percent'])
+    percent_df = pd.DataFrame(columns=['Time','Run','Sleep Stage','Percent'])
 
-    sleep_list_TR = list(sleep_df_TR['sleep_stage'])
+    sleep_list_TR = list(sleep_df_TR['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['TR','Sleep',stage,(sleep_list_TR.count(stage))/len(sleep_list_TR)*100]
-    wake_list_TR = list(wake_df_TR['sleep_stage'])
+    wake_list_TR = list(wake_df_TR['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['TR','Wake',stage,(wake_list_TR.count(stage))/len(wake_list_TR)*100]
     
-    sleep_list_WIN = list(sleep_df_WIN['sleep_stage'])
+    sleep_list_WIN = list(sleep_df_WIN['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Window','Sleep',stage,(sleep_list_WIN.count(stage))/len(sleep_list_WIN)*100]
-    wake_list_WIN = list(wake_df_WIN['sleep_stage'])
+    wake_list_WIN = list(wake_df_WIN['sleep stage'])
     for stage in ['Wake','Stage 1','Stage 2','Stage 3', 'Undetermined']:
         percent_df.loc[len(percent_df.index)] = ['Window','Wake',stage,(wake_list_WIN.count(stage))/len(wake_list_WIN)*100]
     
     color_key  = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
-    output = hv.Bars(percent_df,kdims=['Run','Sleep_Stage','Time'],group='Time').opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for '+SBJ)
+    output = hv.Bars(percent_df,kdims=['Run','Sleep Stage','Time'],group='Time').opts(cmap=color_key,xlabel=' ',ylim=(0,100),width=800,height=350,title='Sleep Stage Bar Graph for '+SBJ)
     return output
 
 
 pn.Column(pn.Row(SubjSelect,WindowSelect),stacked_bar_plot)
 
-pn.Column(pn.Row(SubjSelect,WindowSelect),sleep_bar_graph_TR,sleep_bar_graph_WIN)
-
 percent_df.set_index(['Time','Run','Sleep_Stage'])
 percent_df.set_index(['Time','Run','Sleep_Stage']).hvplot.bar(by='Run')
+
+# ***
+# ## Comparing Sleep Sages by TR vs Windows Over Time
+
+SBJ = 'sub-S30'
+RUN = 'SleepRSER'
+WL  = 30
+
+# +
+sleep_df_TR = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
+
+TIME = int(sleep_df_TR.shape[0])
+WL_trs = int(WL/2)
+
+sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+top_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(0,int((WL_trs-1)/2)))
+bot_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(int((TIME-WL_trs+1)+((WL_trs-1)/2)),TIME))
+sleep_df_WIN = pd.concat([top_temp,sleep_df_WIN,bot_temp], ignore_index=True).reset_index(drop = True)
+sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
+# -
+
+sleep_df_WIN.shape
+
+sleep_df_TR.hvplot.line(x='time [sec]', y='sleep stage') * sleep_df_WIN.hvplot.line(x='time [sec]', y='sleep stage')
