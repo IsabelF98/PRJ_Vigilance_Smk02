@@ -29,16 +29,25 @@ hv.extension('bokeh')
 # +
 PRJDIR   = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 sub_DF   = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
-sub_list = []
+# Dictionary of subject with valid runs
+SubDict = {} # Empty dictionary
 for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
     sbj  = sub_DF.loc[idx]['Sbj']
-    if sbj in sub_list:
-        sbj = sbj
+    run  = sub_DF.loc[idx]['Run']
+    if sbj in SubDict.keys():
+        SubDict[sbj].append(run) # Add run to subject list
     else:
-        sub_list.append(sbj)
+        SubDict[sbj] = [run]
+
+sub_list = list(SubDict.keys())
         
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=sub_list, value=sub_list[0])
+RunSelect    = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value])
 WindowSelect = pn.widgets.Select(name='Select Window', options=[30,46,60], value=30)
+
+def update_run(event):
+    RunSelect.options = SubDict[event.new]
+SubjSelect.param.watch(update_run,'value')
 
 
 # -
@@ -256,27 +265,33 @@ pn.Column(pn.Row(SubjSelect,WindowSelect),stacked_bar_plot)
 percent_df.set_index(['Time','Run','Sleep_Stage'])
 percent_df.set_index(['Time','Run','Sleep_Stage']).hvplot.bar(by='Run')
 
+
 # ***
 # ## Comparing Sleep Sages by TR vs Windows Over Time
 
-SBJ = 'sub-S30'
-RUN = 'SleepRSER'
-WL  = 30
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
+def sleep_stage_over_time(SBJ,RUN,WL):
+    sleep_df_TR = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+    
+    TIME = int(sleep_df_TR.shape[0])
+    WL_trs = int(WL/2)
 
-# +
-sleep_df_TR = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
-sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
+    sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
+    top_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(0,int((WL_trs-1)/2)))
+    bot_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(int((TIME-WL_trs+1)+((WL_trs-1)/2)),TIME))
+    sleep_df_WIN = pd.concat([top_temp,sleep_df_WIN,bot_temp], ignore_index=True).reset_index(drop = True)
+    
+    sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
+    sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
+    
+    output = (sleep_df_TR.hvplot.line(x='time [sec]', y='sleep stage',label='By TR') * 
+              sleep_df_WIN.hvplot.line(x='time [sec]', y='sleep stage',label='By Window')).opts(width=800, height=400, title='Sleep Stage Over Time')
+    #output = output.redim.label(y_col=['nan','Undetermined','Wake','Stage 1','Stage 2','Stage 3'])
+    return output
 
-TIME = int(sleep_df_TR.shape[0])
-WL_trs = int(WL/2)
 
-sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
-top_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(0,int((WL_trs-1)/2)))
-bot_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(int((TIME-WL_trs+1)+((WL_trs-1)/2)),TIME))
-sleep_df_WIN = pd.concat([top_temp,sleep_df_WIN,bot_temp], ignore_index=True).reset_index(drop = True)
-sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
-# -
+a = pd.DataFrame(columns=['Subject','Run','Segment','Stage','Duration'])
+a.append({'Subject':'sub-S24','Run':'SleepDescending','Segment':1,'Stage':'Undertemnined','Duration':5}, ignore_index=True, inplace=True)
+a
 
-sleep_df_WIN.shape
-
-sleep_df_TR.hvplot.line(x='time [sec]', y='sleep stage') * sleep_df_WIN.hvplot.line(x='time [sec]', y='sleep stage')
+pn.Column(pn.Row(SubjSelect,RunSelect,WindowSelect),sleep_stage_over_time)
