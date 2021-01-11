@@ -29,13 +29,13 @@ hv.extension('bokeh')
 # +
 PRJDIR   = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
 sub_DF   = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
-# Dictionary of subject with valid runs
-SubDict = {} # Empty dictionary
-for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
+
+SubDict = {}
+for i,idx in enumerate(sub_DF.index):
     sbj  = sub_DF.loc[idx]['Sbj']
     run  = sub_DF.loc[idx]['Run']
     if sbj in SubDict.keys():
-        SubDict[sbj].append(run) # Add run to subject list
+        SubDict[sbj].append(run)
     else:
         SubDict[sbj] = [run]
 
@@ -70,7 +70,10 @@ def sliding_window(df,WL,fill_TR=False):
         sleep_val    = winner_takes_all(sleep_array)
         sleep_stage_df.loc[i, 'sleep value'] = int(sleep_val)
     if fill_TR == True:
-        # ADD CODE TO FILL ALL TR VALUES
+        top_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(0,int((WL_trs-1)/2)))
+        bot_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(int((TIME-WL_trs+1)+((WL_trs-1)/2)),TIME))
+        sleep_stage_df = pd.concat([top_temp,sleep_stage_df,bot_temp], ignore_index=True).reset_index(drop = True)
+    else:
         sleep_stage_df = sleep_stage_df
     return sleep_stage_df
 
@@ -262,6 +265,7 @@ def stacked_bar_plot(SBJ,WL):
 
 pn.Column(pn.Row(SubjSelect,WindowSelect),stacked_bar_plot)
 
+# TO CHANGE INDEXING
 percent_df.set_index(['Time','Run','Sleep_Stage'])
 percent_df.set_index(['Time','Run','Sleep_Stage']).hvplot.bar(by='Run')
 
@@ -271,27 +275,76 @@ percent_df.set_index(['Time','Run','Sleep_Stage']).hvplot.bar(by='Run')
 
 @pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
 def sleep_stage_over_time(SBJ,RUN,WL):
-    sleep_df_TR = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
-    
-    TIME = int(sleep_df_TR.shape[0])
-    WL_trs = int(WL/2)
-
-    sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=False)
-    top_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(0,int((WL_trs-1)/2)))
-    bot_temp = pd.DataFrame(columns=['time [sec]','sleep value','sleep stage'],index=range(int((TIME-WL_trs+1)+((WL_trs-1)/2)),TIME))
-    sleep_df_WIN = pd.concat([top_temp,sleep_df_WIN,bot_temp], ignore_index=True).reset_index(drop = True)
+    sleep_df_TR  = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+    sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=True)
     
     sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
     sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
     
-    output = (sleep_df_TR.hvplot.line(x='time [sec]', y='sleep stage',label='By TR') * 
-              sleep_df_WIN.hvplot.line(x='time [sec]', y='sleep stage',label='By Window')).opts(width=800, height=400, title='Sleep Stage Over Time')
-    #output = output.redim.label(y_col=['nan','Undetermined','Wake','Stage 1','Stage 2','Stage 3'])
+    scatter_TR  = hv.Scatter(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage'],label='Points TR').opts(jitter=0.2,invert_axes=True)
+    scatter_WIN = hv.Scatter(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage'],label='Points WIN').opts(jitter=0.2,invert_axes=True)
+    
+    line_TR  = hv.Curve(sleep_df_TR,'time [sec]', 'sleep stage',label='Line TR')
+    line_WIN = hv.Curve(sleep_df_WIN,'time [sec]', 'sleep stage',label='Line Window')
+    
+    output = (line_TR*line_WIN).opts(width=800, height=400, title='Sleep Stage Over Time')
+    
     return output
 
 
-a = pd.DataFrame(columns=['Subject','Run','Segment','Stage','Duration'])
-a.append({'Subject':'sub-S24','Run':'SleepDescending','Segment':1,'Stage':'Undertemnined','Duration':5}, ignore_index=True, inplace=True)
-a
-
 pn.Column(pn.Row(SubjSelect,RunSelect,WindowSelect),sleep_stage_over_time)
+
+# ***
+# ## Histogram of Sleep Segments
+
+WL = 0
+sleep_df = pd.DataFrame(columns=['sleep stage'])
+for SBJ in sub_list:
+    for RUN in SubDict[SBJ]:
+        df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        df = pd.DataFrame(df['sleep stage'])
+        sleep_df = sleep_df.append(df,ignore_index=True)
+
+# +
+sleep_hist_df = pd.DataFrame(columns=['Stage','Duration [TR]'])
+
+stage_segment = []
+for i,idx in enumerate(sleep_df.index):
+    stage = str(sleep_df.loc[idx]['sleep stage'])
+    if idx == (sleep_df.shape[0]-1):
+        stage_segment.append(stage)
+        sleep_hist_df = sleep_hist_df.append({'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
+    elif stage == str(sleep_df.loc[idx+1]['sleep stage']):
+        stage_segment.append(stage)
+    elif stage != str(sleep_df.loc[idx+1]['sleep stage']):
+        stage_segment.append(stage)
+        sleep_hist_df = sleep_hist_df.append({'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
+        stage_segment = []
+
+sleep_hist_df = sleep_hist_df.set_index(['Stage'])
+# -
+
+wake_hist    = sleep_hist_df.loc['Wake'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Wake Duration in TRs')
+stage_1_hist = sleep_hist_df.loc['Stage 1'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 1 Duration in TRs')
+stage_2_hist = sleep_hist_df.loc['Stage 2'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 2 Duration in TRs')
+stage_3_hist = sleep_hist_df.loc['Stage 3'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 3 Duration in TRs')
+
+(wake_hist+stage_1_hist+stage_2_hist+stage_3_hist).cols(2)
+
+# ***
+# ## TEST
+
+# +
+import pandas as pd
+import hvplot.pandas
+import holoviews as hv
+import panel as pn
+hv.extension('bokeh')
+
+df = pd.DataFrame(columns=['time [sec]','Sleep Stage'],index=range(0,20))
+df['time [sec]']  = 2*df.index
+df['Sleep Stage'] = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
+scatter  = hv.Scatter(df,vdims=['time [sec]'],kdims=['Sleep Stage']).opts(jitter=0.2,invert_axes=True)
+curve = hv.Curve(df,'time [sec]','Sleep Stage')
+
+scatter*curve
