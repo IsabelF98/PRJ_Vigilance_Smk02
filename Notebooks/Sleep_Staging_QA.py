@@ -278,16 +278,19 @@ def sleep_stage_over_time(SBJ,RUN,WL):
     sleep_df_TR  = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
     sleep_df_WIN = load_sleep_stage_data(SBJ,RUN,WL,window=True,fill_TR=True)
     
+    sleep_df_TR = sleep_df_TR[['time [sec]','sleep stage']].copy()
+    sleep_df_WIN = sleep_df_WIN[['time [sec]','sleep stage']].copy()
+    
     sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
     sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
     
-    scatter_TR  = hv.Scatter(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage'],label='Points TR').opts(jitter=0.2,invert_axes=True)
-    scatter_WIN = hv.Scatter(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage'],label='Points WIN').opts(jitter=0.2,invert_axes=True)
+    scatter_TR  = hv.Scatter(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.4,invert_axes=True)
+    scatter_WIN = hv.Scatter(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.4,invert_axes=True)
     
-    line_TR  = hv.Curve(sleep_df_TR,'time [sec]', 'sleep stage',label='Line TR')
-    line_WIN = hv.Curve(sleep_df_WIN,'time [sec]', 'sleep stage',label='Line Window')
+    line_TR  = hv.Curve(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage'])
+    line_WIN = hv.Curve(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage'])
     
-    output = (line_TR*line_WIN).opts(width=800, height=400, title='Sleep Stage Over Time')
+    output = (line_TR*scatter_TR*line_WIN*scatter_WIN).opts(width=800, height=400, title='Sleep Stage Over Time')
     
     return output
 
@@ -324,27 +327,15 @@ for i,idx in enumerate(sleep_df.index):
 sleep_hist_df = sleep_hist_df.set_index(['Stage'])
 # -
 
-wake_hist    = sleep_hist_df.loc['Wake'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Wake Duration in TRs')
-stage_1_hist = sleep_hist_df.loc['Stage 1'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 1 Duration in TRs')
-stage_2_hist = sleep_hist_df.loc['Stage 2'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 2 Duration in TRs')
-stage_3_hist = sleep_hist_df.loc['Stage 3'].hvplot.hist(y='Duration [TR]').opts(title='Frequency of Stage 3 Duration in TRs')
+wake_hist    = sleep_hist_df.loc['Wake'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Wake Duration in TRs')
+stage_1_hist = sleep_hist_df.loc['Stage 1'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 1 Duration in TRs')
+stage_2_hist = sleep_hist_df.loc['Stage 2'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 2 Duration in TRs')
+stage_3_hist = sleep_hist_df.loc['Stage 3'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 3 Duration in TRs')
 
-(wake_hist+stage_1_hist+stage_2_hist+stage_3_hist).cols(2)
+wake_hist
 
-# ***
-# ## TEST
+stage_1_hist
 
-# +
-import pandas as pd
-import hvplot.pandas
-import holoviews as hv
-import panel as pn
-hv.extension('bokeh')
+stage_2_hist
 
-df = pd.DataFrame(columns=['time [sec]','Sleep Stage'],index=range(0,20))
-df['time [sec]']  = 2*df.index
-df['Sleep Stage'] = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
-scatter  = hv.Scatter(df,vdims=['time [sec]'],kdims=['Sleep Stage']).opts(jitter=0.2,invert_axes=True)
-curve = hv.Curve(df,'time [sec]','Sleep Stage')
-
-scatter*curve
+stage_3_hist
