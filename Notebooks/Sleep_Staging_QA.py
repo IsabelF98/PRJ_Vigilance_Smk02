@@ -284,13 +284,15 @@ def sleep_stage_over_time(SBJ,RUN,WL):
     sleep_df_TR['time [sec]'] = sleep_df_TR.index*2
     sleep_df_WIN['time [sec]'] = sleep_df_WIN.index*2
     
-    scatter_TR  = hv.Scatter(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.4,invert_axes=True)
-    scatter_WIN = hv.Scatter(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.4,invert_axes=True)
+    scatter_TR  = hv.Scatter(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.2,invert_axes=True)
+    scatter_WIN = hv.Scatter(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage']).opts(jitter=0.2,invert_axes=True)
     
     line_TR  = hv.Curve(sleep_df_TR,vdims=['time [sec]'],kdims=['sleep stage'])
     line_WIN = hv.Curve(sleep_df_WIN,vdims=['time [sec]'],kdims=['sleep stage'])
     
-    output = (line_TR*scatter_TR*line_WIN*scatter_WIN).opts(width=800, height=400, title='Sleep Stage Over Time')
+    plot_title = 'Sleep Stage Over Time for '+SBJ+', '+RUN+', Window Lenght '+str(WL)+' sec'
+    
+    output = (line_TR*scatter_TR*line_WIN*scatter_WIN).opts(width=800, height=400, title=plot_title)
     
     return output
 
