@@ -249,18 +249,20 @@ def distance_matrix(SBJ,RUN,WL_sec):
     The z value is that distance.
     """
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load embedding data
-    data_df = LE3D_df[['x_norm','y_norm','z_norm']].copy() # New data frame of only x_norm, y_norm, and z_norm values
-    dist_df = pd.DataFrame(columns=['Window1','Window2','Distance']) # Empty data frame to append window number and distance value
+    data_df = LE3D_df[['x_norm','y_norm','z_norm','Sleep Stage']].copy() # New data frame of only x_norm, y_norm, and z_norm values
+    dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance']) # Empty data frame to append window number and distance value
     for win1 in range(0,data_df.shape[0]): # Itterate through all windows (window 1)
         x1 = data_df.loc[win1,'x_norm'] # Assighn x value for window 1 to x1
         y1 = data_df.loc[win1,'y_norm'] # Assighn y value for window 1 to y1
         z1 = data_df.loc[win1,'z_norm'] # Assighn z value for window 1 to z1
+        stage1 = data_df.loc[win1,'Sleep Stage'] # Assighn sleep stage to stage1 of window 1
         for win2 in range(0,data_df.shape[0]): # Itterate through all windows to compute distance with window 1 (window 2)
             x2 = data_df.loc[win2,'x_norm'] # Assighn x value for window 2 to x1
             y2 = data_df.loc[win2,'y_norm'] # Assighn y value for window 2 to y1
             z2 = data_df.loc[win2,'z_norm'] # Assighn z value for window 2 to z1
+            stage2 = data_df.loc[win2,'Sleep Stage'] # Assighn sleep stage to stage2 of window 2
             # Append window numbers and distance to distance data frame
-            dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)] 
+            dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),stage1,'W-'+str(win2).zfill(3),stage2,distance_3D(x1,y1,z1,x2,y2,z2)] 
     output = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True) # Plot heat map of distances
     return output
 
@@ -335,6 +337,7 @@ pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row
 # ***
 # ## Testing
 
+# + jupyter={"source_hidden": true}
 data = np.random.randn(10, 3).cumsum(axis=0)
 df   = pd.DataFrame(data,columns=['x','y','z'])
 df['type'] = ['A','A','B','C','A','C','C','B','C','A']
@@ -345,7 +348,7 @@ dict_plot={t:hv.Scatter3D(df.query(f'type=="{t}"'),kdims=['x','y','z'],vdims=['t
 h=hv.NdOverlay(dict_plot)
 h.get_dimension('Element').label='type '
 h
-# +
+# + jupyter={"source_hidden": true}
 data_dict={'sub-01':[('run1',100),('run2',100),('run3',60)],'sub-02':[('run1',200),('run2',100),('run3',50)],'sub-03':[('run1',100),('run2',400)]}
 subject_list = list(data_dict.keys())
 
@@ -374,7 +377,7 @@ def print_player_value(value):
 
 pn.Column(pn.Row(subject_select,run_select),player,print_player_value)
 
-# +
+# + jupyter={"source_hidden": true}
 data_dict = {
     "sub-01": [("run1", 100), ("run2", 100), ("run3", 60)],
     "sub-02": [("run1", 200), ("run2", 100), ("run3", 50)],
@@ -432,3 +435,34 @@ def print_player_value(value):
 
 
 pn.Column(pn.Row(subject_select, run_select), player, print_player_value)
+
+# +
+array   = np.random.rand(20,3)
+data_df = pd.DataFrame(array,columns=['x','y','z'])
+sleep   = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
+data_df['stage'] = sleep
+
+dist_df = pd.DataFrame(columns=['Window1','Window2','Distance'])
+for win1 in range(0,data_df.shape[0]):
+    x1 = data_df.loc[win1,'x']
+    y1 = data_df.loc[win1,'y']
+    z1 = data_df.loc[win1,'z']
+    for win2 in range(0,data_df.shape[0]):
+        x2 = data_df.loc[win2,'x']
+        y2 = data_df.loc[win2,'y']
+        z2 = data_df.loc[win2,'z']
+        dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)]
+# -
+
+plot = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True,height=500,width=500)
+plot
+
+color_df = pd.DataFrame(columns=['x','y','stage'],index=range(0,data_df.shape[0]))
+color_df['x'] = color_df.index
+color_df['y'] = 1
+color_df['stage'] = [0,0,0,0,1,1,1,1,1,2,2,2,2,1,1,1,0,0,0,0]
+color_key=['orange','yellow','green']
+color_x = hv.HeatMap(color_df).opts(cmap=color_key,height=150,width=500,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ')
+color_y = hv.HeatMap(color_df).opts(cmap=color_key,height=500,width=150,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ',invert_axes=True)
+
+(color_y + plot + color_x).cols(2)
