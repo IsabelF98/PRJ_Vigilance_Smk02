@@ -437,6 +437,7 @@ def print_player_value(value):
 pn.Column(pn.Row(subject_select, run_select), player, print_player_value)
 
 # +
+hv.extension('bokeh')
 array   = np.random.rand(20,3)
 data_df = pd.DataFrame(array,columns=['x','y','z'])
 sleep   = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
@@ -454,8 +455,8 @@ for win1 in range(0,data_df.shape[0]):
         dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)]
 # -
 
-plot = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True,height=500,width=500)
-plot
+plot = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ')
+plot.image(data_df['stage'], dimension=['x','y'])
 
 color_df = pd.DataFrame(columns=['x','y','stage'],index=range(0,data_df.shape[0]))
 color_df['x'] = color_df.index
