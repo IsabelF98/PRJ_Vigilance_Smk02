@@ -299,40 +299,50 @@ def sleep_stage_over_time(SBJ,RUN,WL):
 
 pn.Column(pn.Row(SubjSelect,RunSelect,WindowSelect),sleep_stage_over_time)
 
+
 # ***
 # ## Histogram of Sleep Segments
 
+def count_duration(sleep_df):
+    sleep_hist_df = pd.DataFrame(columns=['Subject','Run','Stage','Duration [TR]'])
+    stage_segment = []
+    for i,idx in enumerate(sleep_df.index):
+        SBJ = sleep_df.loc[idx]['subject']
+        RUN = sleep_df.loc[idx]['run']
+        stage = str(sleep_df.loc[idx]['sleep stage'])
+        if idx == (sleep_df.shape[0]-1):
+            stage_segment.append(stage)
+            sleep_hist_df = sleep_hist_df.append({'Subject':SBJ,'Run':RUN,'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
+        elif stage == str(sleep_df.loc[idx+1]['sleep stage']):
+            stage_segment.append(stage)
+        elif stage != str(sleep_df.loc[idx+1]['sleep stage']):
+            stage_segment.append(stage)
+            sleep_hist_df = sleep_hist_df.append({'Subject':SBJ,'Run':RUN,'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
+            stage_segment = []
+    return sleep_hist_df
+
+
 WL = 0
-sleep_df = pd.DataFrame(columns=['sleep stage'])
+sleep_hist_df = pd.DataFrame(columns=['Subject','Run','Stage','Duration [TR]'])
 for SBJ in sub_list:
     for RUN in SubDict[SBJ]:
-        df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
-        df = pd.DataFrame(df['sleep stage'])
-        sleep_df = sleep_df.append(df,ignore_index=True)
+        data_df = load_sleep_stage_data(SBJ,RUN,WL,window=False,fill_TR=False)
+        sleep_df = pd.DataFrame(columns=['subject','run','sleep stage'],index=range(0,data_df.shape[0]))
+        sleep_df['subject'] = SBJ
+        sleep_df['run'] = RUN
+        sleep_df['sleep stage'] = data_df['sleep stage']
+        temp_df = count_duration(sleep_df)
+        sleep_hist_df = sleep_hist_df.append(temp_df,ignore_index=True)
 
-# +
-sleep_hist_df = pd.DataFrame(columns=['Stage','Duration [TR]'])
+sleep_hist_df.to_csv(PRJDIR+'Notebooks/sleep_stage_duration.csv',index=False)
 
-stage_segment = []
-for i,idx in enumerate(sleep_df.index):
-    stage = str(sleep_df.loc[idx]['sleep stage'])
-    if idx == (sleep_df.shape[0]-1):
-        stage_segment.append(stage)
-        sleep_hist_df = sleep_hist_df.append({'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
-    elif stage == str(sleep_df.loc[idx+1]['sleep stage']):
-        stage_segment.append(stage)
-    elif stage != str(sleep_df.loc[idx+1]['sleep stage']):
-        stage_segment.append(stage)
-        sleep_hist_df = sleep_hist_df.append({'Stage':stage_segment[0],'Duration [TR]':len(stage_segment)}, ignore_index=True)
-        stage_segment = []
+plot_df = sleep_hist_df[['Stage','Duration [TR]']].copy()
+plot_df = plot_df.set_index(['Stage'])
 
-sleep_hist_df = sleep_hist_df.set_index(['Stage'])
-# -
-
-wake_hist    = sleep_hist_df.loc['Wake'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Wake Duration in TRs')
-stage_1_hist = sleep_hist_df.loc['Stage 1'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 1 Duration in TRs')
-stage_2_hist = sleep_hist_df.loc['Stage 2'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 2 Duration in TRs')
-stage_3_hist = sleep_hist_df.loc['Stage 3'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 3 Duration in TRs')
+wake_hist    = plot_df.loc['Wake'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Wake Duration in TRs')
+stage_1_hist = plot_df.loc['Stage 1'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 1 Duration in TRs')
+stage_2_hist = plot_df.loc['Stage 2'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 2 Duration in TRs')
+stage_3_hist = plot_df.loc['Stage 3'].value_counts().sort_index().hvplot.bar(width=1000).opts(xrotation=45,title='Frequency of Stage 3 Duration in TRs')
 
 wake_hist
 
