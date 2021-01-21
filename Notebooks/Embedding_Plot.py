@@ -263,7 +263,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
             stage2 = data_df.loc[win2,'Sleep Stage'] # Assighn sleep stage to stage2 of window 2
             # Append window numbers and distance to distance data frame
             dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),stage1,'W-'+str(win2).zfill(3),stage2,distance_3D(x1,y1,z1,x2,y2,z2)] 
-    output = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True) # Plot heat map of distances
+    output = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(cmap='jet',colorbar=True,tools=['hover']) # Plot heat map of distances
     return output
 
 
@@ -337,126 +337,49 @@ pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row
 # ***
 # ## Testing
 
-# + jupyter={"source_hidden": true}
-data = np.random.randn(10, 3).cumsum(axis=0)
-df   = pd.DataFrame(data,columns=['x','y','z'])
-df['type'] = ['A','A','B','C','A','C','C','B','C','A']
-color_key  = {'A':'red', 'B':'blue','C':'green'}
-for i,idx in enumerate(df.index):
-    df.loc[idx,'color'] = color_key[df.loc[idx,'type']]
-dict_plot={t:hv.Scatter3D(df.query(f'type=="{t}"'),kdims=['x','y','z'],vdims=['type','color']).opts(show_legend=True,color='color',size=3) for t in df.type.unique()}
-h=hv.NdOverlay(dict_plot)
-h.get_dimension('Element').label='type '
-h
-# + jupyter={"source_hidden": true}
-data_dict={'sub-01':[('run1',100),('run2',100),('run3',60)],'sub-02':[('run1',200),('run2',100),('run3',50)],'sub-03':[('run1',100),('run2',400)]}
-subject_list = list(data_dict.keys())
-
-subject_select = pn.widgets.Select(name='Select Subject',options=subject_list,value=subject_list[0])
-run_select     = pn.widgets.Select(name='Select Run', options=[data_dict[subject_select.value][i][0] for i in range(0,len(data_dict[subject_select.value]))])
-def update_run(event):
-    run_select.options = [data_dict[event.new][i][0] for i in range(0,len(data_dict[event.new]))]
-subject_select.param.watch(update_run,'value')
-
-@pn.depends(subject_select.param.value,run_select.param.value)
-def get_num_tp(SBJ,RUN):
-    num_tp = [data_dict[subject_select.value][i][1] for i in range(0,len(data_dict[subject_select.value])) if data_dict[subject_select.value][i][0] == run_select.value][0]
-    return num_tp
-
-player = pn.widgets.Player(name='Player', start=0, end=get_num_tp(subject_select.value,run_select.value), value=1,loop_policy='loop', width=800, step=1)
-def update_player(event1,event2):
-    player.end = get_num_tp(event1.new,event2.new)
-subject_select.param.watch(update_player,'value')
-run_select.param.watch(update_player,'value')
-
-@pn.depends(player.param.value)
-def print_player_value(value):
-    value = str(value)
-    markdown = pn.pane.Markdown(value)
-    return markdown
-
-pn.Column(pn.Row(subject_select,run_select),player,print_player_value)
-
-# + jupyter={"source_hidden": true}
-data_dict = {
-    "sub-01": [("run1", 100), ("run2", 100), ("run3", 60)],
-    "sub-02": [("run1", 200), ("run2", 100), ("run3", 50)],
-    "sub-03": [("run1", 100), ("run2", 400)],
-}
-subject_list = list(data_dict.keys())
-
-subject_select = pn.widgets.Select(
-    name="Select Subject", options=subject_list, value=subject_list[0]
-)
-run_select = pn.widgets.Select(
-    name="Select Run",
-    options=[
-        data_dict[subject_select.value][i][0]
-        for i in range(0, len(data_dict[subject_select.value]))
-    ],
-)
-
-
-def get_num_tp(sbj, run):
-    for item in data_dict[sbj]:
-        if item[0] == run:
-            return item[1]
-    return 0
-
-
-player = pn.widgets.Player(
-    name="Player",
-    start=0,
-    end=get_num_tp(subject_select.value, run_select.value),
-    value=1,
-    loop_policy="loop",
-    width=800,
-    step=1,
-)
-
-
-@pn.depends(subject_select, watch=True)
-def update_run(subject):
-    run_select.options = [item[0] for item in data_dict[subject]]
-
-
-@pn.depends(subject_select, run_select, watch=True)
-def update_player(subject, run):
-    end_value = get_num_tp(subject, run)
-    player.value = min(player.value, end_value)
-    player.end = end_value
-
-
-@pn.depends(player)
-def print_player_value(value):
-    value = str(value)
-    markdown = pn.pane.Markdown(value)
-    return markdown
-
-
-pn.Column(pn.Row(subject_select, run_select), player, print_player_value)
-
-# +
 hv.extension('bokeh')
 array   = np.random.rand(20,3)
 data_df = pd.DataFrame(array,columns=['x','y','z'])
-sleep   = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
-data_df['stage'] = sleep
+sleep_stage = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
+sleep_value = [0,0,0,0,1,1,1,1,1,2,2,2,2,1,1,1,0,0,0,0]
+data_df['stage'] = sleep_stage
+data_df['value'] = sleep_value
+data_df['window']  = data_df.index
 
-dist_df = pd.DataFrame(columns=['Window1','Window2','Distance'])
+dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance'])
 for win1 in range(0,data_df.shape[0]):
     x1 = data_df.loc[win1,'x']
     y1 = data_df.loc[win1,'y']
     z1 = data_df.loc[win1,'z']
+    stage1 = data_df.loc[win1,'value']
     for win2 in range(0,data_df.shape[0]):
         x2 = data_df.loc[win2,'x']
         y2 = data_df.loc[win2,'y']
         z2 = data_df.loc[win2,'z']
-        dist_df.loc[len(dist_df.index)] = ['W-'+str(win1).zfill(3),'W-'+str(win2).zfill(3),distance_3D(x1,y1,z1,x2,y2,z2)]
-# -
+        stage2 = data_df.loc[win2,'value']
+        dist_df.loc[len(dist_df.index)] = [win1,int(stage1),win2,int(stage2),distance_3D(x1,y1,z1,x2,y2,z2)]
 
-plot = hv.HeatMap(dist_df).opts(cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ')
-plot.image(data_df['stage'], dimension=['x','y'])
+# +
+from holoviews.operation import histogram
+scatter = hv.Scatter(data_df,kdims=['value'],vdims=['window']).opts(invert_axes=True)
+scatter_wake   = scatter[-0.5:0.5]
+scatter_stage1 = scatter[0.5:1.5]
+scatter_stage2 = scatter[1.5:2.5]
+plot    = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(
+                     cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ',tools=['hover'])
+
+#plot.hist(num_bins=data_df.shape[0],dimension=['Window1','Window2'],color=['Stage1','Stage2'])
+
+#hist = (histogram(scatter_wake, num_bins=data_df.shape[0]+1, dimension='window')*
+#        histogram(scatter_stage1, num_bins=data_df.shape[0]+1, dimension='window')*
+#        histogram(scatter_stage2, num_bins=data_df.shape[0]+1, dimension='window'))
+#composition = (plot) << hist.opts(width=150) << hist.opts(height=150)
+
+xhist, yhist = (histogram(plot, num_bins=data_df.shape[0], dimension=dim) for dim in ['Window1','Window2'])
+composition = (plot) << yhist.opts(width=150) << xhist.opts(height=150)
+
+composition
+# -
 
 color_df = pd.DataFrame(columns=['x','y','stage'],index=range(0,data_df.shape[0]))
 color_df['x'] = color_df.index
@@ -466,4 +389,14 @@ color_key=['orange','yellow','green']
 color_x = hv.HeatMap(color_df).opts(cmap=color_key,height=150,width=500,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ')
 color_y = hv.HeatMap(color_df).opts(cmap=color_key,height=500,width=150,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ',invert_axes=True)
 
-(color_y + plot + color_x).cols(2)
+# +
+from holoviews.operation import histogram
+points = hv.Points(np.random.randn(100,2))
+points2 = hv.Points(np.random.randn(100,2)*2+1)
+
+xhist, yhist = (histogram(points2, bin_range=(-5, 5), dimension=dim) *
+                histogram(points,  bin_range=(-5, 5), dimension=dim) 
+                for dim in 'xy')
+
+composition = (points2 * points) << yhist.opts(width=125) << xhist.opts(height=125)
+composition.opts(opts.Histogram(alpha=0.3))
