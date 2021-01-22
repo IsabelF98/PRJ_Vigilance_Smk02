@@ -342,61 +342,72 @@ array   = np.random.rand(20,3)
 data_df = pd.DataFrame(array,columns=['x','y','z'])
 sleep_stage = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
 sleep_value = [0,0,0,0,1,1,1,1,1,2,2,2,2,1,1,1,0,0,0,0]
-data_df['stage'] = sleep_stage
-data_df['value'] = sleep_value
-data_df['window']  = data_df.index
+data_df['stage']  = sleep_stage
+data_df['value']  = sleep_value
+data_df['window'] = data_df.index
 
+# +
 dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance'])
 for win1 in range(0,data_df.shape[0]):
     x1 = data_df.loc[win1,'x']
     y1 = data_df.loc[win1,'y']
     z1 = data_df.loc[win1,'z']
-    stage1 = data_df.loc[win1,'value']
+    stage1 = data_df.loc[win1,'stage']
     for win2 in range(0,data_df.shape[0]):
         x2 = data_df.loc[win2,'x']
         y2 = data_df.loc[win2,'y']
         z2 = data_df.loc[win2,'z']
-        stage2 = data_df.loc[win2,'value']
-        dist_df.loc[len(dist_df.index)] = [win1,int(stage1),win2,int(stage2),distance_3D(x1,y1,z1,x2,y2,z2)]
+        stage2 = data_df.loc[win2,'stage']
+        dist_df.loc[len(dist_df.index)] = [win1,stage1,win2,stage2,distance_3D(x1,y1,z1,x2,y2,z2)]
+        
+plot = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(
+                  cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ',tools=['hover'],xlim=(-2,20),ylim=(-2,20))
 
 # +
-from holoviews.operation import histogram
-scatter = hv.Scatter(data_df,kdims=['value'],vdims=['window']).opts(invert_axes=True)
-scatter_wake   = scatter[-0.5:0.5]
-scatter_stage1 = scatter[0.5:1.5]
-scatter_stage2 = scatter[1.5:2.5]
-plot    = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(
-                     cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ',tools=['hover'])
+segment_df   = pd.DataFrame(columns=['stage','start','end','start_event','end_event'])
 
-#plot.hist(num_bins=data_df.shape[0],dimension=['Window1','Window2'],color=['Stage1','Stage2'])
+start = 0
+segment = []
+for i,idx in enumerate(data_df.index):
+    stage = str(data_df.loc[idx]['stage'])
+    if idx == (data_df.shape[0]-1):
+        segment.append(stage)
+        end = start + (len(segment) - 1)
+        segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end,'start_event':-1, 'end_event':-1}, ignore_index=True)
+    elif stage == str(data_df.loc[idx+1]['stage']):
+        segment.append(stage)
+    elif stage != str(data_df.loc[idx+1]['stage']):
+        segment.append(stage)
+        end = start + (len(segment) - 1)
+        segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end,'start_event':-1, 'end_event':-1}, ignore_index=True)
+        start = end + 1
+        segment = []
+segment_df = segment_df.set_index(['stage'])
 
-#hist = (histogram(scatter_wake, num_bins=data_df.shape[0]+1, dimension='window')*
-#        histogram(scatter_stage1, num_bins=data_df.shape[0]+1, dimension='window')*
-#        histogram(scatter_stage2, num_bins=data_df.shape[0]+1, dimension='window'))
-#composition = (plot) << hist.opts(width=150) << hist.opts(height=150)
 
-xhist, yhist = (histogram(plot, num_bins=data_df.shape[0], dimension=dim) for dim in ['Window1','Window2'])
-composition = (plot) << yhist.opts(width=150) << xhist.opts(height=150)
+# +
+wake_df = pd.DataFrame(segment_df.loc['Wake']).reset_index().drop(['stage'],axis=1)
+wake_df['start'] = wake_df['start'] - 0.5
+wake_df['end'] = wake_df['end'] + 0.5
 
-composition
+stage1_df = pd.DataFrame(segment_df.loc['Stage 1']).reset_index().drop(['stage'],axis=1)
+stage1_df['start'] = stage1_df['start'] - 0.5
+stage1_df['end'] = stage1_df['end'] + 0.5
+
+stage2_df = pd.DataFrame(segment_df.loc['Stage 2']).T.reset_index().drop(['index'],axis=1)
+stage2_df['start'] = stage2_df['start'] - 0.5
+stage2_df['end'] = stage2_df['end'] + 0.5
+
+wake_seg_x   = hv.Segments(wake_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='orange', line_width=10)
+stage1_seg_x = hv.Segments(stage1_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='yellow', line_width=10)
+stage2_seg_x = hv.Segments(stage2_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='green', line_width=10)
+
+wake_seg_y   = hv.Segments(wake_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='orange', line_width=10)
+stage1_seg_y = hv.Segments(stage1_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='yellow', line_width=10)
+stage2_seg_y = hv.Segments(stage2_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='green', line_width=10)
+
+segx = wake_seg_x*stage1_seg_x*stage2_seg_x
+segy = wake_seg_y*stage1_seg_y*stage2_seg_y
 # -
 
-color_df = pd.DataFrame(columns=['x','y','stage'],index=range(0,data_df.shape[0]))
-color_df['x'] = color_df.index
-color_df['y'] = 1
-color_df['stage'] = [0,0,0,0,1,1,1,1,1,2,2,2,2,1,1,1,0,0,0,0]
-color_key=['orange','yellow','green']
-color_x = hv.HeatMap(color_df).opts(cmap=color_key,height=150,width=500,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ')
-color_y = hv.HeatMap(color_df).opts(cmap=color_key,height=500,width=150,xaxis=None,yaxis=None,xlabel=' ',ylabel=' ',invert_axes=True)
-
-# +
-from holoviews.operation import histogram
-points = hv.Points(np.random.randn(100,2))
-points2 = hv.Points(np.random.randn(100,2)*2+1)
-
-xhist, yhist = (histogram(points2, bin_range=(-5, 5), dimension=dim) *
-                histogram(points,  bin_range=(-5, 5), dimension=dim) 
-                for dim in 'xy')
-
-composition = (points2 * points) << yhist.opts(width=125) << xhist.opts(height=125)
-composition.opts(opts.Histogram(alpha=0.3))
+segx*segy*plot
