@@ -29,6 +29,8 @@ import hvplot.pandas
 import hvplot.xarray
 import holoviews as hv
 import panel as pn
+import scipy
+from scipy.spatial.distance import pdist, squareform
 from holoviews import dim, opts
 hv.extension('plotly')
 pn.extension('plotly')
@@ -227,31 +229,29 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
 # ***
 # ## Euclidean Distance Matrix
 
-def distance_3D(x1,y1,z1,x2,y2,z2):
-    """
-    This fuction computes the Euclidean distance between 2 3D points.
-    Where point 1 is (x1,y1,z1) and point 2 is (x2,y2,z2).
-    The distance equation is sqrt((x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2).
-    The function outputs the distance as float number.
-    """
-    dist = np.sqrt((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)
-    return dist
-
-
 def stage_seg_df(segment_df,stage):
-    try:
+    """
+    This function creates a data frame with each segment duration of a chosen sleep stage for a given run.
+    The function input a segment data frame, already created, that is indexed by sleep stage and states the 
+    start and end point of a stages segment in TR's called 'segment_df'.
+    If a run does not have a certain stage an empty data frame is returned.
+    """
+    try: # Try to load stage data from segment_df
         seg_df = pd.DataFrame(segment_df.loc[stage])
-    except:
+    except: # If stage does not exist in data load empty data frame
         seg_df = pd.DataFrame(columns=['start','end','start_event','end_event'])
-    if seg_df.shape[0] > 0:
-        if seg_df.shape[1] == 4:
-            seg_df = seg_df.reset_index().drop(['stage'],axis=1)
-        else:
-            seg_df = seg_df.T.reset_index().drop(['index'],axis=1)
-        seg_df['start'] = seg_df['start'] - 0.5
+    
+    if seg_df.shape[0] > 0: # If not an empyt data frame, then there is data for that stage
+        if seg_df.shape[1] == 4: # If there is more then one segment of the data the data is not inverted
+            seg_df = seg_df.reset_index().drop(['stage'],axis=1) # Reset index and drop 'stage' column
+        else: # If there is only one segment of the data the data is inverted and must be transposed
+            seg_df = seg_df.T.reset_index().drop(['index'],axis=1) # Transpose data and reset index
+        # Add 0.5 to each end of segment to span entire heat map
+        seg_df['start'] = seg_df['start'] - 0.5 
         seg_df['end'] = seg_df['end'] + 0.5
-    else: 
-        seg_df = seg_df.append({'start':0, 'end':0,'start_event':-2, 'end_event':-2}, ignore_index=True)
+        
+    else: # If its an empty data frame (no data for that stage exists)
+        seg_df = seg_df.append({'start':0, 'end':0,'start_event':-2, 'end_event':-2}, ignore_index=True) # Add "empty" data (no start of end for segment)
     return seg_df
 
 
@@ -264,72 +264,91 @@ def distance_matrix(SBJ,RUN,WL_sec):
     The fuction plots the heat map using holoviews hv.HeatMap().
     The x and y axes of the plot are the two windows in which you are finding the distance.
     The z value is that distance.
+    A plot of the sleep staging segments are ploted along the x and y axis of the heat map using hv.Segments().
     """
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load embedding data
     data_df = LE3D_df[['x_norm','y_norm','z_norm','Sleep Stage']].copy() # New data frame of only x_norm, y_norm, and z_norm values
     
-    dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance']) # Empty data frame to append window number and distance value
-    for win1 in range(0,data_df.shape[0]): # Itterate through all windows (window 1)
-        x1 = data_df.loc[win1,'x_norm'] # Assighn x value for window 1 to x1
-        y1 = data_df.loc[win1,'y_norm'] # Assighn y value for window 1 to y1
-        z1 = data_df.loc[win1,'z_norm'] # Assighn z value for window 1 to z1
-        stage1 = data_df.loc[win1,'Sleep Stage'] # Assighn sleep stage to stage1 of window 1
-        for win2 in range(0,data_df.shape[0]): # Itterate through all windows to compute distance with window 1 (window 2)
-            x2 = data_df.loc[win2,'x_norm'] # Assighn x value for window 2 to x1
-            y2 = data_df.loc[win2,'y_norm'] # Assighn y value for window 2 to y1
-            z2 = data_df.loc[win2,'z_norm'] # Assighn z value for window 2 to z1
-            stage2 = data_df.loc[win2,'Sleep Stage'] # Assighn sleep stage to stage2 of window 2
-            # Append window numbers and distance to distance data frame
-            dist_df.loc[len(dist_df.index)] = [win1,stage1,win2,stage2,distance_3D(x1,y1,z1,x2,y2,z2)]
+    sleep_stage_list = list(data_df['Sleep Stage']) # List of sleep stafe data for run
+    # Next two lines creats a list of each sleep stage times number of windows
+    sleep_stage_list1 = [[sleep_stage_list[i]]*len(sleep_stage_list) for i in range(0,len(sleep_stage_list))] # Multiply each element by num of windows
+    sleep_stage_list2 = [item for sublist in sleep_stage_list1 for item in sublist] 3 # Make one list of all elements
+    
+    window_list = list(data_df.index) # List of all windows
+    # Next two lines creats a list of each window times number of windows
+    window_list1 = [[window_list[i]]*len(window_list) for i in range(0,len(window_list))] # Multiply each element by num of windows
+    window_list2 = [item for sublist in window_list1 for item in sublist] # Make one list of all elements
+    
+    data_array = data_df[['x_norm','y_norm','z_norm']].to_numpy() # Data as a numpy array
+    dist_array = squareform(pdist(data_array, 'euclidean')).reshape(data_df.shape[0]**2,1) # Calculate distance matrix and rehape into one vecotr
+    
+    dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance'],index=range(0,data_df.shape[0]**2)) # Empty data frame of distances
+    dist_df['Distance'] = dist_array # Append all distances
+    dist_df['Stage1'] = sleep_stage_list2 # Append sleep stage for x axis
+    dist_df['Stage2'] = sleep_stage_list*len(sleep_stage_list) # Append sleep stage for y axis
+    dist_df['Window1'] = window_list2 # Append window number for x axis
+    dist_df['Window2'] = window_list*len(window_list) # Append window number for y axis
             
-    segment_df   = pd.DataFrame(columns=['stage','start','end','start_event','end_event'])
-    start = 0
-    segment = []
-    for i,idx in enumerate(data_df.index):
-        stage = str(data_df.loc[idx]['Sleep Stage'])
-        if idx == (data_df.shape[0]-1):
-            segment.append(stage)
-            end = start + (len(segment) - 1)
+    # Empty data frame to append segment info of run 
+    # stage = sleep stage, start = first window of segment, end = last window of segment, start_event & end_event = where the segment lies on graph (always -2)
+    segment_df = pd.DataFrame(columns=['stage','start','end','start_event','end_event']) 
+    start = 0 # Start at 0th window
+    segment = [] # Empty list to append all stages in a segment (should all be the same stage)
+    for i,idx in enumerate(data_df.index): # Iterate through data_df index
+        stage = str(data_df.loc[idx]['Sleep Stage']) # Save stage at index as 'stage'
+        if idx == (data_df.shape[0]-1): # If its the last index of run
+            segment.append(stage) # Append stage to segment list
+            end = start + (len(segment) - 1) # Last window of the segment is the lenght of the segment list plus the start number of the segment
+            # Append values to segment_df
+            segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end,'start_event':-1, 'end_event':-1}, ignore_index=True) 
+        elif stage == str(data_df.loc[idx+1]['Sleep Stage']): # If the next index values stage is equal to the current stage
+            segment.append(stage) # Append stage to segment list and loop again
+        elif stage != str(data_df.loc[idx+1]['Sleep Stage']): # If the next index values stage is not equal to the current stage
+            segment.append(stage) # Append stage to segment list
+            end = start + (len(segment) - 1) # Last window of the segment is the lenght of the segment list plus the start number of the segment
+            # Append values to segment_df
             segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end,'start_event':-1, 'end_event':-1}, ignore_index=True)
-        elif stage == str(data_df.loc[idx+1]['Sleep Stage']):
-            segment.append(stage)
-        elif stage != str(data_df.loc[idx+1]['Sleep Stage']):
-            segment.append(stage)
-            end = start + (len(segment) - 1)
-            segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end,'start_event':-1, 'end_event':-1}, ignore_index=True)
-            start = end + 1
-            segment = []
-    segment_df = segment_df.set_index(['stage'])
+            start = end + 1 # Start of next segment is the last window of the last segment + 1
+            segment = [] # New empty segment list for next segment
+    segment_df = segment_df.set_index(['stage']) # Set segment_df index as the sleep stage for that segment
     
-    und_df    = stage_seg_df(segment_df,'Undetermined')
-    wake_df   = stage_seg_df(segment_df,'Wake')
-    stage1_df = stage_seg_df(segment_df,'Stage 1')
-    stage2_df = stage_seg_df(segment_df,'Stage 2')
-    stage3_df = stage_seg_df(segment_df,'Stage 3')
+    und_df    = stage_seg_df(segment_df,'Undetermined') # Create data frame of all undetermined segments for plotting
+    wake_df   = stage_seg_df(segment_df,'Wake') # Create data frame of all wake segments for plotting
+    stage1_df = stage_seg_df(segment_df,'Stage 1') # Create data frame of all stage 1 segments for plotting
+    stage2_df = stage_seg_df(segment_df,'Stage 2') # Create data frame of all stage 2 segments for plotting
+    stage3_df = stage_seg_df(segment_df,'Stage 3') # Create data frame of all stage 3 segments for plotting
     
+    # Plot segments using hv.Segments() for each stage along x-axis
     und_seg_x    = hv.Segments(und_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='gray', line_width=20)
     wake_seg_x   = hv.Segments(wake_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='orange', line_width=20)
     stage1_seg_x = hv.Segments(stage1_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='yellow', line_width=20)
     stage2_seg_x = hv.Segments(stage2_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='green', line_width=20)
     stage3_seg_x = hv.Segments(stage3_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='blue', line_width=20)
-
+    
+    # Plot segments using hv.Segments() for each stage along y-axis
     und_seg_y    = hv.Segments(und_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='gray', line_width=20)
     wake_seg_y   = hv.Segments(wake_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='orange', line_width=20)
     stage1_seg_y = hv.Segments(stage1_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='yellow', line_width=20)
     stage2_seg_y = hv.Segments(stage2_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='green', line_width=20)
     stage3_seg_y = hv.Segments(stage3_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='blue', line_width=20)
-
+    
+    # Overlay all plots for xy-axis to create one plot for each axis
     segx = und_seg_x*wake_seg_x*stage1_seg_x*stage2_seg_x*stage3_seg_x
     segy = und_seg_y*wake_seg_y*stage1_seg_y*stage2_seg_y*stage3_seg_y
     
+    # Plot heat map using hv.HeatMap() with hover tool
     plot = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(cmap='jet',colorbar=True,tools=['hover']) # Plot heat map of distances
-    output = (segx*segy*plot).opts(width=700,height=600)
+    
+    # Overlay segment plots and heat map
+    output = (segx*segy*plot).opts(width=700,height=600,title='Distance Martix for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]')
     return output
 
 
 # Example distance matrix for subject 30, run SleepRSER, and window length 30 sec
 hv.extension('bokeh')
 distance_matrix('sub-S30','SleepRSER',30)
+
+distance_matrix('sub-S24','WakeDescending',60)
 
 
 # ***
@@ -407,22 +426,23 @@ data_df['stage']  = sleep_stage
 data_df['value']  = sleep_value
 data_df['window'] = data_df.index
 
+array = data_df[['x','y','z']].to_numpy()
+dist_array = squareform(pdist(array, 'euclidean')).reshape(data_df.shape[0]**2,1)
+dist_array[4]
+
 # +
 dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance'])
 for win1 in range(0,data_df.shape[0]):
-    x1 = data_df.loc[win1,'x']
-    y1 = data_df.loc[win1,'y']
-    z1 = data_df.loc[win1,'z']
     stage1 = data_df.loc[win1,'stage']
     for win2 in range(0,data_df.shape[0]):
-        x2 = data_df.loc[win2,'x']
-        y2 = data_df.loc[win2,'y']
-        z2 = data_df.loc[win2,'z']
         stage2 = data_df.loc[win2,'stage']
-        dist_df.loc[len(dist_df.index)] = [win1,stage1,win2,stage2,distance_3D(x1,y1,z1,x2,y2,z2)]
+        dist_df.loc[len(dist_df.index)] = [win1,stage1,win2,stage2,dist_array[idx]]
         
 plot = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(
                   cmap='jet',colorbar=True,height=500,width=650,xlabel=' ',ylabel=' ',tools=['hover'],xlim=(-2,20),ylim=(-2,20))
+# -
+
+dist_df.head()
 
 # +
 segment_df   = pd.DataFrame(columns=['stage','start','end','start_event','end_event'])
