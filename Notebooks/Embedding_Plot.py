@@ -32,7 +32,7 @@ import panel as pn
 import scipy
 from scipy.spatial.distance import pdist, squareform
 from holoviews import dim, opts
-hv.extension('plotly')
+hv.extension('plotly','bokeh')
 pn.extension('plotly')
 
 # ***
@@ -52,8 +52,9 @@ for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
     if sbj in SubDict.keys():
         SubDict[sbj].append(run) # Add run to subject list
     else: # If subject is not in dictionary yet
-        SubDict[sbj] = ['All'] # Create subject element in dictionary
-        SubDict[sbj].append(run) # Append run to newly created subject list
+        #SubDict[sbj] = ['All'] # Create subject element in dictionary
+        #SubDict[sbj].append(run) # Append run to newly created subject list
+        SubDict[sbj] = [run]
 
 # List of all subjects
 SubjectList = list(SubDict.keys())
@@ -151,7 +152,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         output = output.opts(size=5,
                              xlim=(-1,1), 
                              ylim=(-1,1), 
-                             zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700)
+                             zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=500, width=500)
     
     # Plots with color based on time (only for single run) or based on run (only for plotting 'All' data)
     # ---------------------------------------------------------------------------------------------------
@@ -170,7 +171,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
                                  size=5,
                                  xlim=(-1,1), 
                                  ylim=(-1,1), 
-                                 zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700)
+                                 zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=500, width=500)
         else:
             # Select columns to be plotted, from the original data frame, and asighn to new data frame ("df")
             df = LE3D_df[['x_norm','y_norm','z_norm','Run']].copy()
@@ -185,7 +186,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
             output = hv.NdOverlay(dict_plot).opts(
                               xlim=(-1,1), 
                               ylim=(-1,1), 
-                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=700, width=700)
+                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=500, width=500)
             output.get_dimension('Element').label='Run '
     # Plots with color based on sleep staging from EEG
     # ------------------------------------------------
@@ -204,7 +205,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         output = hv.NdOverlay(dict_plot).opts(
                               xlim=(-1,1), 
                               ylim=(-1,1), 
-                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=700, width=700)
+                              zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, margins=(5,5,5,5), height=500, width=500)
         output.get_dimension('Element').label='Sleep_Stage '
     # Plots with color based on motion (framewise displacement)
     # ---------------------------------------------------------
@@ -222,7 +223,8 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
                                             size=5,
                                             xlim=(-1,1), 
                                             ylim=(-1,1), 
-                                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=700, width=700))
+                                            zlim=(-1,1), aspect={'x':1,'y':1,'z':1}, camera_zoom=1, margins=(5,5,5,5), height=500, width=500))
+    output = hv.render(output, backend='plotly')
     return output
 
 
@@ -255,6 +257,8 @@ def stage_seg_df(segment_df,stage):
     return seg_df
 
 
+# Make function dependint on subject, run, and window length values
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
 def distance_matrix(SBJ,RUN,WL_sec):
     """
     This fuction plots a heat map of the distnaces of each window for a given run.
@@ -272,7 +276,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
     sleep_stage_list = list(data_df['Sleep Stage']) # List of sleep stafe data for run
     # Next two lines creats a list of each sleep stage times number of windows
     sleep_stage_list1 = [[sleep_stage_list[i]]*len(sleep_stage_list) for i in range(0,len(sleep_stage_list))] # Multiply each element by num of windows
-    sleep_stage_list2 = [item for sublist in sleep_stage_list1 for item in sublist] 3 # Make one list of all elements
+    sleep_stage_list2 = [item for sublist in sleep_stage_list1 for item in sublist] # Make one list of all elements
     
     window_list = list(data_df.index) # List of all windows
     # Next two lines creats a list of each window times number of windows
@@ -337,7 +341,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
     segy = und_seg_y*wake_seg_y*stage1_seg_y*stage2_seg_y*stage3_seg_y
     
     # Plot heat map using hv.HeatMap() with hover tool
-    plot = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(cmap='jet',colorbar=True,tools=['hover']) # Plot heat map of distances
+    plot = hv.HeatMap(dist_df,kdims=['Window1','Window2'],vdims=['Distance','Stage1','Stage2']).opts(cmap='jet',colorbar=True,tools=['hover'])
     
     # Overlay segment plots and heat map
     output = (segx*segy*plot).opts(width=700,height=600,title='Distance Martix for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]')
@@ -346,9 +350,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
 
 # Example distance matrix for subject 30, run SleepRSER, and window length 30 sec
 hv.extension('bokeh')
-distance_matrix('sub-S30','SleepRSER',30)
-
-distance_matrix('sub-S24','WakeDescending',60)
+pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect),distance_matrix)
 
 
 # ***
@@ -412,12 +414,13 @@ def run_description(RUN):
 
 
 # Display widgets player and plot
-pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row(plot_embed3d,run_description))
+pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),
+          run_description,player,
+          pn.Row(plot_embed3d,distance_matrix))
 
 # ***
 # ## Testing
 
-hv.extension('bokeh')
 array   = np.random.rand(20,3)
 data_df = pd.DataFrame(array,columns=['x','y','z'])
 sleep_stage = ['Wake','Wake','Wake','Wake','Stage 1','Stage 1','Stage 1','Stage 1','Stage 1','Stage 2','Stage 2','Stage 2','Stage 2','Stage 1','Stage 1','Stage 1','Wake','Wake','Wake','Wake']
@@ -426,9 +429,8 @@ data_df['stage']  = sleep_stage
 data_df['value']  = sleep_value
 data_df['window'] = data_df.index
 
-array = data_df[['x','y','z']].to_numpy()
-dist_array = squareform(pdist(array, 'euclidean')).reshape(data_df.shape[0]**2,1)
-dist_array[4]
+scatter = hv.output(hv.Scatter(data_df,kdims=['stage'],vdims=['window']).opts(color='red'), backend='bokeh')
+scatter
 
 # +
 dist_df = pd.DataFrame(columns=['Window1','Stage1','Window2','Stage2','Distance'])
@@ -464,10 +466,7 @@ for i,idx in enumerate(data_df.index):
         start = end + 1
         segment = []
 segment_df = segment_df.set_index(['stage'])
-# -
 
-
-pd.DataFrame(segment_df.loc['Stage 2']).shape
 
 # +
 wake_df = pd.DataFrame(segment_df.loc['Wake']).reset_index().drop(['stage'],axis=1)
@@ -495,3 +494,17 @@ segy = wake_seg_y*stage1_seg_y*stage2_seg_y
 # -
 
 segx*segy*plot
+
+data = load_data('sub-S30','SleepAscending',30)
+
+# %%time
+data_array = data[['x_norm','y_norm','z_norm']].to_numpy() # Data as a numpy array
+dist_array = squareform(pdist(data_array, 'euclidean')).reshape(data.shape[0]**2,1) # Calculate distance matrix and rehape into one vecotr
+
+# %%time 
+data_array = data[['x_norm','y_norm','z_norm']].to_numpy() # Data as a numpy array
+a = squareform(pdist(data_array, 'euclidean'))
+hv.Image(a, bounds=(0,0,398,398)).opts(cmap='jet')
+
+# +
+# hv.Image?
