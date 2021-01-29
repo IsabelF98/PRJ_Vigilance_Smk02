@@ -44,8 +44,8 @@ for i,idx in enumerate(sub_DF.index):
 SubjectList = list(SubDict.keys())
 
 # +
-# Creates N00_load_EEG_sleep.SWARM.sh file
-# ----------------------------------------
+# Creates N00b_load_EEG_sleep.SWARM.sh file
+# -----------------------------------------
 
 os.system('if [ ! -d N00b_load_EEG_sleep.logs ]; then mkdir N00b_load_EEG_sleep.logs; fi') # Create logs directory if doesnt already exist
 os.system('echo "#swarm -f ./N00b_load_EEG_sleep.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N00b_load_EEG_sleep.logs; watch -n 30 squeue -u fernandezis" > ./N00b_load_EEG_sleep.SWARM.sh')

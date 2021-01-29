@@ -1,3 +1,6 @@
+# The notebook will first create a date frame with the all the subject information: subject number, run name, time points in run, and region (min and max) of run in the concatinated data.
+# The data frame is then saved as a .pkl file to be used in other notebooks and python files.
+
 import os
 import os.path as osp
 import pandas as pd

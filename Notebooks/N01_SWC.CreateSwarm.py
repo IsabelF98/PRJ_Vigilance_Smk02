@@ -16,10 +16,6 @@
 # # Create SWARM File for running N01
 #
 # This notebook creates the swarm file N01_SWC.SWARM.sh to run N01_SWC.ToSwarm.py (the file that creates the embeddings) for each run and window length for each subject.
-# * The notebook will first create a date frame with the all the subject information: subject number, run name, time points in run, and region (min and max) of run in the concatinated data.
-# * The data frame is then saved as a .pkl file to be used in other notebooks and python files.
-# * A dictionary is then created of the data. Organized by subjects and its proceeding information as a tupole.
-# * Finally the swarm file is created that calls the N01_SWC.ToSwarm.py for each subjects run and window length.
 
 import os
 import os.path as osp
