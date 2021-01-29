@@ -13,9 +13,9 @@
 #     name: vigilance
 # ---
 
-# # Create SWARM File for running N00
+# # Create SWARM File for running N00b
 #
-# This notebook creates the swarm file N00_load_EEG_sleep.SWARM.sh to run N00_load_EEG_sleep.ToSwarm.py, the file that loads the sleep staging data for each subject and run.
+# This notebook creates the swarm file N00b_load_EEG_sleep.SWARM.sh to run N00b_load_EEG_sleep.ToSwarm.py, the file that loads the sleep staging data for each subject and run.
 
 import os
 import os.path as osp
@@ -47,9 +47,8 @@ SubjectList = list(SubDict.keys())
 # Creates N00_load_EEG_sleep.SWARM.sh file
 # ----------------------------------------
 
-os.system('if [ ! -d N00_load_EEG_sleep.logs ]; then mkdir N00_load_EEG_sleep.logs; fi') # Create logs directory if doesnt already exist
-os.system('echo "#swarm -f ./N00_load_EEG_sleep.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N00_load_EEG_sleep.logs; watch -n 30 squeue -u fernandezis" > ./N00_load_EEG_sleep.SWARM.sh')
+os.system('if [ ! -d N00b_load_EEG_sleep.logs ]; then mkdir N00b_load_EEG_sleep.logs; fi') # Create logs directory if doesnt already exist
+os.system('echo "#swarm -f ./N00b_load_EEG_sleep.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N00b_load_EEG_sleep.logs; watch -n 30 squeue -u fernandezis" > ./N00b_load_EEG_sleep.SWARM.sh')
 for sbj in SubjectList:
     for run in SubDict[sbj]:
-        os.system('echo "python N00_load_EEG_sleep.ToSwarm.py {sbj} {run}" >> ./N00_load_EEG_sleep.SWARM.sh'.format(sbj=sbj,run=run))
-        
+        os.system('echo "python N00b_load_EEG_sleep.ToSwarm.py {sbj} {run}" >> ./N00b_load_EEG_sleep.SWARM.sh'.format(sbj=sbj,run=run))

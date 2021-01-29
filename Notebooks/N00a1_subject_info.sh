@@ -1,3 +1,4 @@
+# Creates a text file called subject_run.txt in utils with all subject and run info needed
 module load afni
 
 ORIG_DATA_DIR='/data/SFIM_Vigilance/Data/DSET02/' # Folder containing the original (un-preprocessed data)
