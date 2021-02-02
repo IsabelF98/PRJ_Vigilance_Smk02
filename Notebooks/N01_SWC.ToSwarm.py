@@ -127,7 +127,7 @@ ts_pca_df.to_pickle(out_pcats_path)
 window = np.ones((WL_trs,))
 # Compute sliding window correlation
 swc_r, swc_Z, winInfo = compute_swc(ts_pca_df,WL_trs,WS_trs,window=window)
-xr.DataArray(swc_Z.values.T,dims=['Time [Window ID]','PCA Connection'])
+swc_Z.to_pickle(out_swc_path)
 
 
 # 4. Generate Laplacian Embedding
