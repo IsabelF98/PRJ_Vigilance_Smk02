@@ -28,6 +28,7 @@ import numpy as np
 import hvplot.xarray
 import hvplot.pandas
 import holoviews as hv
+from holoviews.plotting.links import DataLink
 import plotly.express as px
 import plotly.graph_objects as go
 import panel as pn
@@ -67,10 +68,10 @@ SubjectList = list(SubDict.keys())
 
 # +
 # Widgets for selecting subject run and window legth
-SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0]) # Select subject
-RunSelect    = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value]) # Select run for chosen subject
-WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60]) # Select window lenght
-ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion']) # Select color setting for plot
+SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0],width=200) # Select subject
+RunSelect    = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value],width=200) # Select run for chosen subject
+WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 def update_run(event):
@@ -149,14 +150,6 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load data to be plotted
     LE3D_df = LE3D_df.infer_objects() # Infer objects to be int, float, or string apropriatly
     
-    size = size = pd.Series(np.full(max_win, 1), index=range(0,max_win))
-    color = None
-    color_continuous_scale = None
-    color_discrete_map = None
-    range_color = None
-    
-    print(max_win,SBJ,RUN,WL_sec,COLOR)
-    
     title = 'Laplacian Embedings for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]' # Plot title
     
     # Plots 3D scatter with no color
@@ -166,7 +159,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         color_discrete_map = None
         range_color = None
         
-    # Plots 3D scatter with color based on time (if a single run) or based on run (if all runs)
+    # Plots 3D peramiters for color based on time (if a single run) or based on run (if all runs)
     if COLOR == 'Time/Run':
         if RUN != 'All': # A single run
             color = range(0,max_win)
@@ -181,29 +174,30 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
             color_continuous_scale = None
             range_color = None
     
-    # Plot 3D with coloring by sleep stage
+    # Plot 3D peramiters with coloring by sleep stage
     if COLOR == 'Sleep':
         # color_map defines the colors coresponding to each sleep stage
         color = 'Sleep Stage'
         color_discrete_map = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'}
-        color_continuous_scale = None
+        color_continuous_scale = False
         range_color = None
    
-    # Plot 3D with coloring by motion (average framewise displacment over each window)
+    # Plot 3D peramiters with coloring by motion (average framewise displacment over each window)
     if COLOR == 'Motion':
         color = 'Motion'
         color_continuous_scale = 'jet'
         color_discrete_map = None
         range_color = [0,LE3D_df['Motion'].max()]
         
-    output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color=color,size=size,size_max=8,color_continuous_scale=color_continuous_scale,
+    output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color=color,color_continuous_scale=color_continuous_scale,
                            color_discrete_map=color_discrete_map,range_color=range_color,range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],
-                           width=700,height=600,opacity=0.7,title=title)
+                           width=700,height=600,opacity=0.9,title=title)
+    
+    output = output.update_traces(marker=dict(size=5,line=dict(width=0)))
     
     return output
 
 
-# + jupyter={"source_hidden": true}
 # Make function dependint on player, subject, run, and window length values
 @pn.depends(player.param.value,SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value,ColorSelect.param.value)
 def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
@@ -217,8 +211,6 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load data to be plotted
     LE3D_df = LE3D_df.infer_objects() # Infer objects to be int, float, or string apropriatly
-    
-    print(max_win,SBJ,RUN,WL_sec,COLOR)
     
     title = 'Laplacian Embedings for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]' # Plot title
     
@@ -251,10 +243,11 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color='Motion',color_continuous_scale='jet',
                                range_color=[0,LE3D_df['Motion'].max()],range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,
                                height=600,opacity=0.7,title=title)
+        
+    output = output.update_traces(marker=dict(size=5,line=dict(width=0)))
+    
     return output
 
-
-# -
 
 # ***
 # ## Euclidean Distance Matrix
@@ -309,7 +302,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
     
     data_array = data_df[['x_norm','y_norm','z_norm']].to_numpy() # Data as a numpy array
     dist_array = squareform(pdist(data_array, 'euclidean')) # Calculate distance matrix and rehape into one vecotr
-    dist_array = np.rot90(dist_array)
+    dist_array = xr.DataArray(dist_array,dims=['Time [Window ID]','Time [Window ID] Y'])
     
     und_df    = stage_seg_df(segment_df,'Undetermined') # Create data frame of all undetermined segments for plotting
     wake_df   = stage_seg_df(segment_df,'Wake') # Create data frame of all wake segments for plotting
@@ -318,29 +311,29 @@ def distance_matrix(SBJ,RUN,WL_sec):
     stage3_df = stage_seg_df(segment_df,'Stage 3') # Create data frame of all stage 3 segments for plotting
     
     # Plot segments using hv.Segments() for each stage along x-axis (i.e y=-2 axis)
-    und_seg_x    = hv.Segments(und_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='gray', line_width=10)
-    wake_seg_x   = hv.Segments(wake_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='orange', line_width=10)
-    stage1_seg_x = hv.Segments(stage1_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='yellow', line_width=10)
-    stage2_seg_x = hv.Segments(stage2_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='green', line_width=10)
-    stage3_seg_x = hv.Segments(stage3_df, [hv.Dimension('start'), hv.Dimension('start_event'), 'end', 'end_event']).opts(color='blue', line_width=10)
+    und_seg_x    = hv.Segments(und_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='gray', line_width=10)
+    wake_seg_x   = hv.Segments(wake_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='orange', line_width=10)
+    stage1_seg_x = hv.Segments(stage1_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='yellow', line_width=10)
+    stage2_seg_x = hv.Segments(stage2_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='green', line_width=10)
+    stage3_seg_x = hv.Segments(stage3_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='blue', line_width=10)
     
     # Plot segments using hv.Segments() for each stage along y-axis (i.e x=-2 axis)
-    und_seg_y    = hv.Segments(und_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='gray', line_width=10)
-    wake_seg_y   = hv.Segments(wake_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='orange', line_width=10)
-    stage1_seg_y = hv.Segments(stage1_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='yellow', line_width=10)
-    stage2_seg_y = hv.Segments(stage2_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='green', line_width=10)
-    stage3_seg_y = hv.Segments(stage3_df, [hv.Dimension('start_event'), hv.Dimension('start'), 'end_event', 'end']).opts(color='blue', line_width=10)
+    und_seg_y    = hv.Segments(und_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='gray', line_width=10)
+    wake_seg_y   = hv.Segments(wake_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='orange', line_width=10)
+    stage1_seg_y = hv.Segments(stage1_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='yellow', line_width=10)
+    stage2_seg_y = hv.Segments(stage2_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='green', line_width=10)
+    stage3_seg_y = hv.Segments(stage3_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='blue', line_width=10)
     
     # Overlay all plots for xy-axis to create one plot for each axis
-    segx = (und_seg_x*wake_seg_x*stage1_seg_x*stage2_seg_x*stage3_seg_x).opts(xlabel=' ',ylabel=' ',apply_ranges=(-0.5,-0.5,data_df.shape[0]-0.5,data_df.shape[0]-0.5))
-    segy = (und_seg_y*wake_seg_y*stage1_seg_y*stage2_seg_y*stage3_seg_y).opts(xlabel=' ',ylabel=' ',apply_ranges=(-0.5,-0.5,data_df.shape[0]-0.5,data_df.shape[0]-0.5))
+    segx = (und_seg_x*wake_seg_x*stage1_seg_x*stage2_seg_x*stage3_seg_x).opts(xlabel=' ',ylabel=' ')
+    segy = (und_seg_y*wake_seg_y*stage1_seg_y*stage2_seg_y*stage3_seg_y).opts(xlabel=' ',ylabel=' ')
     
     # Plot heat map using hv.HeatMap() with hover tool
-    plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,data_df.shape[0]-0.5,data_df.shape[0]-0.5)).opts(cmap='jet',xlabel=' ',ylabel=' '))
+    plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,data_df.shape[0]-0.5,data_df.shape[0]-0.5)).opts(cmap='jet',ylabel='Time [Window ID]'))
     
     # Overlay segment plots and heat map
-    output = (segx*segy*plot).opts(width=500,height=400,title='Distance Martix for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]')
-    return segx*segy
+    output = (plot*segx*segy).opts(width=500,height=400)
+    return output
 
 
 # ***
@@ -355,8 +348,7 @@ def motion_trace(SBJ,RUN,WL_sec):
     """
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load embedding data
     #Plot the Framewise Displacment over windows
-    output = hv.Curve(LE3D_df['Motion']).opts(xlabel='Time [Window ID]',ylabel='Framewise Displacement',width=700,height=300,
-                                              title='Motion Trace for '+SBJ+' '+RUN+' and WL '+str(WL_sec)+' [sec]')
+    output = hv.Curve(LE3D_df['Motion']).opts(xlabel='Time [Window ID]',ylabel='Framewise Displacement',width=500,height=200)
     return output
 
 
@@ -375,21 +367,21 @@ def run_description(RUN):
                                   This is the concatenated  data of all the runs. The order in which they are concatenated, 
                                   if such runs exist for that subject, are SleepAscending, Sleep Descending, Sleep RSER, 
                                   Wake Ascending, Wake Descending, and Wake RSER.
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'SleepAscending':
         output = pn.pane.Markdown("""
                                   ### Sleep Ascending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
                                   asleep. While in the scanner a repeating 10 tones in ascending order were played to
                                   the subject. The subject is not required to respond to the tones.
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'SleepDescending':
         output = pn.pane.Markdown("""
                                   ### Sleep Descending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to fall 
                                   asleep with eyes closed. While in the scanner a repeating 10 tones in descending order
                                   were played to the subject. The subject is not required to respond to the tones.
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'SleepRSER':
         output = pn.pane.Markdown("""
                                   ### Sleep RSER:
@@ -397,21 +389,21 @@ def run_description(RUN):
                                   asleep with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
                                   5 minuets the subject was asked to continue to rest and were played tones periodicaly. The
                                   subject is not required to respond to the tones. 
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'WakeAscending':
         output = pn.pane.Markdown("""
                                   ### Wake Ascending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
                                   awake. While in the scanner a repeating 10 tones in ascending order were played to
                                   the subject. The subject is not required to respond to the tones.
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'WakeDescending':
         output = pn.pane.Markdown("""
                                   ### Wake Descending:
                                   In this run the subject was placed in the scanner for around 13 minuets and asked to stay 
                                   awake with eyes closed. While in the scanner a repeating 10 tones in descending order
                                   were played to the subject. The subject is not required to respond to the tones.
-                                  """, width=800)
+                                  """, width=500)
     if RUN == 'WakeRSER':
         output = pn.pane.Markdown("""
                                   ### Wake RSER:
@@ -419,15 +411,26 @@ def run_description(RUN):
                                   awake with eyes closed. In the first 5 minuets the subject was asked to rest. In the next 
                                   5 minuets the subject was asked to continue to rest and were played tones periodicaly. The
                                   subject is not required to respond to the tones.
-                                  """, width=800)
+                                  """, width=500)
     return output
 
 
+# Make function dependint on subject, run, and window length values
+@pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
+def dist_mot_trace(SBJ,RUN,WL_sec):
+    dist = distance_matrix(SBJ,RUN,WL_sec)
+    mot  = motion_trace(SBJ,RUN,WL_sec)
+    dlink = DataLink(dist, mot)
+    output = (dist + mot).cols(1)
+    return output.opts(title='Distance Matrix and Motion Trace')
+
+
 # Display widgets player and plots
-dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),
-          run_description,player,
-          pn.Row(plot_embed3d,distance_matrix),
-          motion_trace)
+dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),run_description),
+          pn.Row(plot_embed3d,dist_mot_trace))
+
+# Display widgets player and plots
+dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
 
 # Creat http for gui
 dash_server = dash.show(port=port_tunnel, open=False)
