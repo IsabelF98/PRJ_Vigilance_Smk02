@@ -48,34 +48,35 @@ print('++ INFO: Second Port available: %d' % port_tunnel)
 
 # +
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
+sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
 
 # Load data frame of valid subjects info
-sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl')
-
-# Dictionary of subject with valid runs
 SubDict = {} # Empty dictionary
 for i,idx in enumerate(sub_DF.index): # Iterate through each row of data frame
     sbj  = sub_DF.loc[idx]['Sbj']
     run  = sub_DF.loc[idx]['Run']
+    time = sub_DF.loc[idx]['Time']
     if sbj in SubDict.keys():
-        SubDict[sbj].append(run) # Add run to subject list
-    else: # If subject is not in dictionary yet
-        SubDict[sbj] = ['All'] # Create subject element in dictionary
-        SubDict[sbj].append(run) # Append run to newly created subject list
+        SubDict[sbj].append((run,time)) # Add run tuple (described above)
+    else:
+        SubDict[sbj] = [(run,time)] # If subject is not already in the directory a new element is created
+        
+SubjectList = list(SubDict.keys()) # list of subjects   
 
-# List of all subjects
-SubjectList = list(SubDict.keys())
+# Add 'All' option to subject diction for each subject. 'All' meaning the concatinated data
+for sbj in SubjectList:
+    SubDict[sbj].append(('All',sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj])))))
 
 # +
 # Widgets for selecting subject run and window legth
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0],width=200) # Select subject
-RunSelect    = pn.widgets.Select(name='Select Run', options=SubDict[SubjSelect.value],width=200) # Select run for chosen subject
+RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))],width=200) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
 ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 def update_run(event):
-    RunSelect.options = SubDict[event.new]
+    RunSelect.options = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))]
 SubjSelect.param.watch(update_run,'value')
 
 
@@ -198,6 +199,7 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     return output
 
 
+# + jupyter={"source_hidden": true}
 # Make function dependint on player, subject, run, and window length values
 @pn.depends(player.param.value,SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value,ColorSelect.param.value)
 def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
@@ -249,38 +251,10 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
     return output
 
 
+# -
+
 # ***
 # ## Euclidean Distance Matrix
-
-def stage_seg_df(segment_df,stage):
-    """
-    This function creates a data frame with each segment duration of a chosen sleep stage for a given run.
-    The function input a segment data frame, already created, that is indexed by sleep stage and states the 
-    start and end point of a stages segment in TR's called 'segment_df'.
-    If a run does not have a certain stage an empty data frame is returned.
-    """
-    try: # Try to load stage data from segment_df
-        seg_df = pd.DataFrame(segment_df.loc[stage])
-    except: # If stage does not exist in data load empty data frame
-        seg_df = pd.DataFrame(columns=['start','end'])
-    
-    if seg_df.shape[0] > 0: # If not an empyt data frame, then there is data for that stage
-        if seg_df.shape[1] == 2: # If there is more then one segment of the data the data is not inverted
-            seg_df = seg_df.reset_index().drop(['stage'],axis=1) # Reset index and drop 'stage' column
-        else: # If there is only one segment of the data the data is inverted and must be transposed
-            seg_df = seg_df.T.reset_index().drop(['index'],axis=1) # Transpose data and reset index
-        # Add 0.5 to each end of segment to span entire heat map
-        seg_df['start'] = seg_df['start'] - 0.5 
-        seg_df['end'] = seg_df['end'] + 0.5
-        
-    else: # If its an empty data frame (no data for that stage exists)
-        seg_df = seg_df.append({'start':0, 'end':0}, ignore_index=True) # Add "empty" data (no start of end for segment)
-    
-    # 'start_event' and 'end_event' represent the axis along which the segments will be (-2 so it is not on top of the heat map)
-    seg_df['start_event'] = -2
-    seg_df['end_event']   = -2
-    return seg_df
-
 
 # Make function dependint on subject, run, and window length values
 @pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
@@ -289,50 +263,79 @@ def distance_matrix(SBJ,RUN,WL_sec):
     This fuction plots a heat map of the distnaces of each window for a given run.
     The inputs for the fuction (subject, run, and window leght) allows the user to choose what run and window leghth
     they with to plot for a given subject.
-    The distance between two windows (i.e. points on the 3D plot) is computed using distance_3D() created above.
-    The fuction plots the heat map using holoviews hv.HeatMap().
+    The distance between two windows (i.e. points on the 3D plot) is computed using numpys squareform(pdist()).
+    The fuction plots the heat map using holoviews hv.Image().
     The x and y axes of the plot are the two windows in which you are finding the distance.
     The z value is that distance.
-    A plot of the sleep staging segments are ploted along the x and y axis of the heat map using hv.Segments().
+    A plot of the sleep staging segments are ploted along the x and y axis of the image using hv.Segments().
+    If all runs are being displayed a plot of the run segments are ploted along the x and y axis of the image using hv.Segments().
     """
     LE3D_df    = load_data(SBJ,RUN,WL_sec) # Load embedding data
     data_path  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_WL_'+str(WL_sec)+'sec_Sleep_Segments.pkl')
-    segment_df = pd.read_pickle(data_path) 
+    sleep_segments_df = pd.read_pickle(data_path) 
     data_df    = LE3D_df[['x_norm','y_norm','z_norm','Sleep Stage']].copy() # New data frame of only x_norm, y_norm, and z_norm values
     
     data_array = data_df[['x_norm','y_norm','z_norm']].to_numpy() # Data as a numpy array
     dist_array = squareform(pdist(data_array, 'euclidean')) # Calculate distance matrix and rehape into one vecotr
-    dist_array = xr.DataArray(dist_array,dims=['Time [Window ID]','Time [Window ID] Y'])
+    dist_array = xr.DataArray(dist_array,dims=['Time [Window ID]','Time [Window ID] Y']) # Distances as x_array data frame
     
-    und_df    = stage_seg_df(segment_df,'Undetermined') # Create data frame of all undetermined segments for plotting
-    wake_df   = stage_seg_df(segment_df,'Wake') # Create data frame of all wake segments for plotting
-    stage1_df = stage_seg_df(segment_df,'Stage 1') # Create data frame of all stage 1 segments for plotting
-    stage2_df = stage_seg_df(segment_df,'Stage 2') # Create data frame of all stage 2 segments for plotting
-    stage3_df = stage_seg_df(segment_df,'Stage 3') # Create data frame of all stage 3 segments for plotting
+    sleep_color_map = {'Wake':'orange','Stage 1':'yellow','Stage 2':'green','Stage 3':'blue','Undetermined':'gray'} # Color key for sleep staging
     
-    # Plot segments using hv.Segments() for each stage along x-axis (i.e y=-2 axis)
-    und_seg_x    = hv.Segments(und_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='gray', line_width=10)
-    wake_seg_x   = hv.Segments(wake_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='orange', line_width=10)
-    stage1_seg_x = hv.Segments(stage1_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='yellow', line_width=10)
-    stage2_seg_x = hv.Segments(stage2_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='green', line_width=10)
-    stage3_seg_x = hv.Segments(stage3_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])), 'end', 'end_event']).opts(color='blue', line_width=10)
+    # Plot of sleep staging segements along the x and y axis
+    sleep_seg_x = hv.Segments(sleep_segments_df, [hv.Dimension('start',range=(-5,data_df.shape[0])), hv.Dimension('start_event',range=(-5,data_df.shape[0])),
+                              'end', 'end_event'],'stage').opts(color='stage',cmap=sleep_color_map,line_width=8,show_legend=False)
+    sleep_seg_y = hv.Segments(sleep_segments_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])),
+                              'end_event', 'end'],'stage').opts(color='stage',cmap=sleep_color_map,line_width=8,show_legend=False)
     
-    # Plot segments using hv.Segments() for each stage along y-axis (i.e x=-2 axis)
-    und_seg_y    = hv.Segments(und_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='gray', line_width=10)
-    wake_seg_y   = hv.Segments(wake_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='orange', line_width=10)
-    stage1_seg_y = hv.Segments(stage1_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='yellow', line_width=10)
-    stage2_seg_y = hv.Segments(stage2_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='green', line_width=10)
-    stage3_seg_y = hv.Segments(stage3_df, [hv.Dimension('start_event',range=(-5,data_df.shape[0])), hv.Dimension('start',range=(-5,data_df.shape[0])), 'end_event', 'end']).opts(color='blue', line_width=10)
-    
-    # Overlay all plots for xy-axis to create one plot for each axis
-    segx = (und_seg_x*wake_seg_x*stage1_seg_x*stage2_seg_x*stage3_seg_x).opts(xlabel=' ',ylabel=' ')
-    segy = (und_seg_y*wake_seg_y*stage1_seg_y*stage2_seg_y*stage3_seg_y).opts(xlabel=' ',ylabel=' ')
+    # If plotting all runs add segent to x and y axis for coloring by run
+    if RUN == 'All':
+        run_list = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ])-1)] # List of all runs
+        time_list = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SBJ])-1)] # List of all run lenghts in TR's (in the same order as runs in list above)
+
+        WL_trs = int(WL_sec/2) # Window length in TR's
+
+        run_segments_df = pd.DataFrame(columns=['run','start','end']) # Emptly data frame for segment legths of runs
+        
+        # For each run a row is appended into the data frame created above with the run name and the start and end window of the data
+        x=0 # Starting at 0th TR
+        for i in range(len(run_list)):
+            time = time_list[i] # Number of TR's in run
+            run  = run_list[i] # Name of run
+            end=x+time-WL_trs # End TR of run
+            if i == len(run_list)-1: # If its the last run no need to append inbetween run
+                run_segments_df = run_segments_df.append({'run':run,'start':x,'end':end}, ignore_index=True)
+            else: 
+                run_segments_df = run_segments_df.append({'run':run,'start':x,'end':end}, ignore_index=True) # Append run info
+                x=end+1
+                run_segments_df = run_segments_df.append({'run':'Inbetween Runs','start':x,'end':(x-1)+(WL_trs-1)}, ignore_index=True) # Append inbetween run info
+                x=x+(WL_trs-1)
+
+        # Add 0.5 to each end of segment to span entire heat map
+        run_segments_df['start'] = run_segments_df['start'] - 0.5 
+        run_segments_df['end']   = run_segments_df['end'] + 0.5
+        
+        # 'start_event' and 'end_event' represent the axis along which the segments will be (-30 so it is not on top of the heat map)
+        run_segments_df['start_event'] = -30
+        run_segments_df['end_event']   = -30
+        
+        # Color key for runs
+        run_color_map = {'SleepAscending':'red','SleepDescending':'orange','SleepRSER':'yellow','WakeAscending':'purple','WakeDescending':'blue','WakeRSER':'green','Inbetween Runs':'gray'}
+        
+        # Plot of run segements along the x and y axis
+        run_seg_x = hv.Segments(run_segments_df, [hv.Dimension('start',range=(-40,data_df.shape[0])), hv.Dimension('start_event',range=(-40,data_df.shape[0])),
+                                'end', 'end_event'],'run').opts(color='run',cmap=run_color_map,line_width=8,show_legend=False)
+        run_seg_y = hv.Segments(run_segments_df, [hv.Dimension('start_event',range=(-20,data_df.shape[0])), hv.Dimension('start',range=(-20,data_df.shape[0])),
+                                'end_event', 'end'],'run').opts(color='run',cmap=run_color_map,line_width=8,show_legend=False)
+        
+        segment_plot = (sleep_seg_x*sleep_seg_y*run_seg_x*run_seg_y).opts(xlabel=' ',ylabel=' ',show_legend=False) # All segments concatinated (including runs)
+    else:
+        segment_plot = (sleep_seg_x*sleep_seg_y).opts(xlabel=' ',ylabel=' ',show_legend=False) # All segments concatinated (not including runs)
     
     # Plot heat map using hv.HeatMap() with hover tool
     plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,data_df.shape[0]-0.5,data_df.shape[0]-0.5)).opts(cmap='jet',ylabel='Time [Window ID]'))
     
     # Overlay segment plots and heat map
-    output = (plot*segx*segy).opts(width=500,height=400)
+    output = (plot*segment_plot).opts(width=500,height=400)
     return output
 
 
@@ -420,9 +423,8 @@ def run_description(RUN):
 def dist_mot_trace(SBJ,RUN,WL_sec):
     dist = distance_matrix(SBJ,RUN,WL_sec)
     mot  = motion_trace(SBJ,RUN,WL_sec)
-    dlink = DataLink(dist, mot)
     output = (dist + mot).cols(1)
-    return output.opts(title='Distance Matrix and Motion Trace')
+    return output
 
 
 # Display widgets player and plots
@@ -430,7 +432,7 @@ dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, Co
           pn.Row(plot_embed3d,dist_mot_trace))
 
 # Display widgets player and plots
-dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
+dash = pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect)
 
 # Creat http for gui
 dash_server = dash.show(port=port_tunnel, open=False)
