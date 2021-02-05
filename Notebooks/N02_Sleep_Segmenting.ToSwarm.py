@@ -61,7 +61,14 @@ for i,idx in enumerate(data_df.index): # Iterate through data_df index
         segment_df = segment_df.append({'stage':stage, 'start':start, 'end':end}, ignore_index=True)
         start = end + 1 # Start of next segment is the last window of the last segment + 1
         segment = [] # New empty segment list for next segment
-segment_df = segment_df.set_index(['stage']) # Set segment_df index as the sleep stage for that segment
+
+# Add 0.5 to each end of segment to span entire heat map
+segment_df['start'] = segment_df['start'] - 0.5 
+segment_df['end'] = segment_df['end'] + 0.5
+
+# 'start_event' and 'end_event' represent the axis along which the segments will be (-2 so it is not on top of the heat map)
+segment_df['start_event'] = -2
+segment_df['end_event']   = -2
 
 print('++INFO: Data Frame Finished')
 print(' ') 
