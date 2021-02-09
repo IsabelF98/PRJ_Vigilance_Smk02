@@ -334,10 +334,11 @@ def distance_matrix(SBJ,RUN,WL_sec):
     
     # Plot heat map using hv.Image
     # Set bounds to (-0.5,-0.5,num_win-0.5,num_win-0.5) to corespond with acurate windows
-    plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]'))
+    #plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]'))
+    plot = hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]')
     
     # Overlay segment plots and heat map
-    output = (plot*segment_plot).opts(width=500,height=400)
+    output = (plot*segment_plot).opts(width=500,height=390)
     return output
 
 
@@ -434,7 +435,8 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
     """
     Plot the distance matrix and motion trace in line with each other
     """
-    output = hv.Layout(distance_matrix(SBJ,RUN,WL_sec)+motion_trace(SBJ,RUN,WL_sec)).cols(1)
+    # LINK X-AXIS!!!
+    output = (distance_matrix(SBJ,RUN,WL_sec)+motion_trace(SBJ,RUN,WL_sec)).cols(1)
     return output
 
 
@@ -442,16 +444,13 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
 dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),run_description),
           pn.Row(plot_embed3d,dist_mot_trace))
 
-# TEST DASH
-dash = pn.Column(dist_mot_trace)
-
 # Start gui
 dash_server = dash.show(port=port_tunnel, open=False)
 
 # Stop gui
 dash_server.stop()
 
-SBJ = 'sub-S14'
-RUN = 'SleepAscending'
+SBJ = 'sub-S13'
+RUN = 'All'
 WL_sec = 30
 dist_mot_trace(SBJ,RUN,WL_sec)
