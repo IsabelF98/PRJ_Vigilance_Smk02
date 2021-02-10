@@ -34,6 +34,7 @@ import scipy
 from scipy.spatial.distance import pdist, squareform
 from holoviews import dim, opts
 from holoviews.operation.datashader import rasterize
+from holoviews.plotting.links import DataLink
 hv.extension('bokeh')
 pn.extension('plotly')
 
@@ -247,7 +248,9 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         
     output = output.update_traces(marker=dict(size=5,line=dict(width=0))) # No outline on points
     
-    return output
+    output = output.update_layout(scene_camera=dict(eye=dict()))
+    
+    return pn.pane.Plotly(output)
 
 
 # ***
@@ -334,11 +337,11 @@ def distance_matrix(SBJ,RUN,WL_sec):
     
     # Plot heat map using hv.Image
     # Set bounds to (-0.5,-0.5,num_win-0.5,num_win-0.5) to corespond with acurate windows
-    #plot = rasterize(hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]'))
     plot = hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]')
     
     # Overlay segment plots and heat map
     output = (plot*segment_plot).opts(width=500,height=390)
+
     return output
 
 
@@ -353,6 +356,7 @@ def motion_trace(SBJ,RUN,WL_sec):
     The fuction plots the average framewise displacemnt over a window using holovies hv.Curve() function.
     """
     LE3D_df = load_data(SBJ,RUN,WL_sec) # Load embedding data
+    LE3D_df['Time [Window ID]'] = LE3D_df.index
     
     # Depending on segments for distance matrix add buffer space to the left of motion so x axis of matrix and x axis of motion trace alighn
     if RUN == 'All':
@@ -361,7 +365,7 @@ def motion_trace(SBJ,RUN,WL_sec):
         xlim=(-10,LE3D_df.shape[0])
     
     #Plot the Framewise Displacment over windows
-    output = hv.Curve(LE3D_df['Motion']).opts(xlabel='Time [Window ID]',ylabel='Framewise Disp.',width=500,height=150,xlim=xlim,ylim=(0,1))
+    output = hv.Curve(LE3D_df,vdims=['Motion'],kdims=['Time [Window ID]']).opts(xlabel='Time [Window ID]',ylabel='Framewise Disp.',width=500,height=150,xlim=xlim,ylim=(0,1))
     return output
 
 
@@ -435,7 +439,6 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
     """
     Plot the distance matrix and motion trace in line with each other
     """
-    # LINK X-AXIS!!!
     output = (distance_matrix(SBJ,RUN,WL_sec)+motion_trace(SBJ,RUN,WL_sec)).cols(1)
     return output
 
@@ -444,13 +447,12 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
 dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),run_description),
           pn.Row(plot_embed3d,dist_mot_trace))
 
+# +
+#dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
+# -
+
 # Start gui
 dash_server = dash.show(port=port_tunnel, open=False)
 
 # Stop gui
 dash_server.stop()
-
-SBJ = 'sub-S13'
-RUN = 'All'
-WL_sec = 30
-dist_mot_trace(SBJ,RUN,WL_sec)
