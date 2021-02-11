@@ -445,14 +445,15 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
 
 # Display widgets player and plots
 dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),run_description),
-          pn.Row(plot_embed3d,dist_mot_trace))
+          pn.Row(plot_embed3d,dist_mot_trace)).servable()
 
 # +
 #dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,plot_embed3d)
-# -
 
+# +
 # Start gui
-dash_server = dash.show(port=port_tunnel, open=False)
+#dash_server = dash.show(port=port_tunnel, open=False)
 
+# +
 # Stop gui
-dash_server.stop()
+#dash_server.stop()
