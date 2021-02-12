@@ -26,6 +26,7 @@ SBJ_2 = SBJ_1.replace("-S","") # Subject number in form 'sub??'
 RUN   = sys.argv[2] # Run name
 
 out_path = osp.join(PRJDIR,'PrcsData',SBJ_1,'D02_Preproc_fMRI',SBJ_1+'_'+RUN+'_EEG_sleep.pkl') # File name of data being saved
+#out_path = osp.join(PRJDIR,'Notebooks',SBJ_1+'_'+RUN+'_EEG_sleep.pkl')
 
 # Empty data frame of subject spacific EEG sleep staging data
 EEG_sbj_sleep_df = pd.DataFrame(columns=['dataset','subject','cond','TR','sleep','drowsiness','spectral','seconds']) 
@@ -51,5 +52,26 @@ if max_TR != TIME+6:
 
 # Concatinate data so all TR's are acounted for in data frame
 EEG_sbj_sleep_df = pd.concat([EEG_sbj_sleep_df,temp_bot]).reset_index(drop = True)
+
+sleep_list =[] # Emply sleep staging list
+# Append sleep stage into list
+#    0   = wake
+#    1   = stage 1
+#    2   = stage 2
+#    3   = stage 3
+#    NaN = undetermined stage
+for i,idx in enumerate(EEG_sbj_sleep_df.index):
+    if EEG_sbj_sleep_df.loc[idx, 'sleep'] == 0:
+        sleep_list.append('Wake')
+    elif EEG_sbj_sleep_df.loc[idx, 'sleep'] == 1:
+        sleep_list.append('Stage 1')
+    elif EEG_sbj_sleep_df.loc[idx, 'sleep'] == 2:
+        sleep_list.append('Stage 2')
+    elif EEG_sbj_sleep_df.loc[idx, 'sleep'] == 3:
+        sleep_list.append('Stage 3')
+    else:
+        sleep_list.append('Undetermined')
+        
+EEG_sbj_sleep_df['stage'] = sleep_list # Add column to data of sleep stages
     
 EEG_sbj_sleep_df.to_pickle(out_path) # Save data frame as pickle file in subject directory

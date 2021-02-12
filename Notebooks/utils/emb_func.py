@@ -96,7 +96,7 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     else: # All runs
         run_list = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))] # List of runs for that subject
         run_list.remove('All') # Remove "All" from list of runs
-        EEG_sleep_df = pd.DataFrame(columns=['dataset','subject','cond','TR','sleep','drowsiness','spectral','seconds']) # Empty sleep staged data frame with coulumn names
+        EEG_sleep_df = pd.DataFrame(columns=['dataset','subject','cond','TR','sleep','drowsiness','spectral','seconds','stage']) # Empty sleep staged data frame with coulumn names
         # Append each runs sleep stage data to end of EEG_sleep_df
         for r in run_list:
             sleep_file_path    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+r+'_EEG_sleep.pkl')
