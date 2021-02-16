@@ -73,21 +73,29 @@ RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
 ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
+@pn.depends(SubjSelect.param.value, watch=True)
+def update_run(SBJ):
+    runs = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))]
+    RunSelect.options = runs
+    RunSelect.value = runs[0]
+
 # Updates available runs given SubjSelect value
-def update_run(event):
-    pre_select_val = RunSelect.param.value
-    RunSelect.options = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))]
-    if pre_select_val not in RunSelect.options:
-        RunSelect.param.value = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))][0]
-    else:
-        RunSelect.param.value = pre_select_val
-SubjSelect.param.watch(update_run,'value')
+#def update_run(event):
+#    pre_select_val = RunSelect.param.value
+#    RunSelect.options = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))]
+#    RunSelect.param.value = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))][0]
+#SubjSelect.param.watch(update_run,'value')
 
 
 # -
 
 # ***
 # ## Load Data and Get Data Info
+
+# Load sleep order data at a pandas data frame
+data_path  = osp.join(PRJDIR,'PrcsData','all','run_order.csv')
+run_order_df = pd.read_csv(data_path)[['subject','run']].copy()
+
 
 def load_data(SBJ,RUN,WL_sec):
     """
@@ -105,7 +113,6 @@ def load_data(SBJ,RUN,WL_sec):
     le_k_NN                = 100
 
     #Path to data
-    PRJDIR       = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
     path_datadir = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
     data_prefix  = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
     data_path    = osp.join(path_datadir,data_prefix+'_'+dim_red_method+'_vk'+str(dim_red_method_percent)+'.le'+str(le_num_dims)+'d_knn'+str(le_k_NN).zfill(3)+'.pkl')
@@ -114,34 +121,42 @@ def load_data(SBJ,RUN,WL_sec):
 
 
 def load_sleep_stage_data(SBJ,RUN,WL_sec):
-    PRJDIR   = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/'
-    WL_trs = WL_sec/2
-    if (WL_trs % 2) == 0:
-        disp = int(WL_trs/2)
-    else:
-        disp = int((WL_trs+1)/2)
+    """
+    This function loads the sleep staging data on a TR to TR basis for each subject and run as a pandas data frame
+    Given the window length of the data selected the data frame with be displaced so the center TR of the TR to the
+    right of the center of each window is allighned
+    The data frame has two columns window cneter and sleep stage
+    """
+    WL_trs = WL_sec/2 # Window lenght in terms of TR (TR = 2sec)
     
-    if RUN != 'All':
+    if (WL_trs % 2) == 0: # If window length is even set window to center TR
+        disp = int(WL_trs/2) # How much to displace the data by (i.e 1/2 a window)
+    else: # If window length is even set window to the TR right of center
+        disp = int((WL_trs+1)/2) # How much to displace the data by (i.e 1/2 a window)
+    
+    if RUN != 'All': # If a single run just load single run data
         DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+RUN+'_EEG_sleep.pkl')
         temp_df  = pd.read_pickle(DATADIR)
         
-    else:
+    else: # If all runs concatinate all runs data
         run_list = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))]
         run_list.remove('All')
         temp_df  = pd.DataFrame(columns=['dataset','subject','cond','TR','sleep','drowsiness','spectral','seconds','stage'])
-        # Append each runs sleep stage data to end of EEG_sleep_df
+        # Append each runs sleep stage data to end of temp_df
         for r in run_list:
             DATADIR  = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI',SBJ+'_'+r+'_EEG_sleep.pkl')
             run_sleep_df = pd.read_pickle(DATADIR)
             temp_df = temp_df.append(run_sleep_df).reset_index(drop = True)
     
-    TIME = int(temp_df.shape[0])
+    TIME = int(temp_df.shape[0]) # How many TR's in data
+    
+    # Create empty data frame for sleep staging data with displaced index
     sleep_df = pd.DataFrame(columns=['Time [Window ID]','Sleep Stage'],index=range(-disp,TIME-disp))
     
-    sleep_df['Time [Window ID]'] = sleep_df.index
+    sleep_df['Time [Window ID]'] = sleep_df.index # Column of window centers (same as index)
+    sleep_list = list(temp_df['stage']) # Set all sleep stages as list
+    sleep_df['Sleep Stage'] = sleep_list # Append list for sleep stages of data frame
     
-    sleep_list = list(temp_df['stage'])
-    sleep_df['Sleep Stage'] = sleep_list
     return sleep_df
 
 
@@ -346,6 +361,9 @@ def motion_trace(SBJ,RUN,WL_sec):
 
 @pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
 def sleep_stage_trace(SBJ,RUN,WL_sec):
+    """
+    This function plots the sleep staging of the data as a line plot with windows on the x axis and sleep stage on the y axis
+    """
     sleep_df = load_sleep_stage_data(SBJ,RUN,WL_sec)
     output   = hv.Curve(sleep_df,kdims=['Time [Window ID]'],vdims=['Sleep Stage']).opts(width=600,height=150)
     return output
@@ -354,12 +372,36 @@ def sleep_stage_trace(SBJ,RUN,WL_sec):
 # ***
 # ## Plot Display
 
+@pn.depends(SubjSelect.param.value)
+def run_order(SBJ):  
+    sbj1 = SBJ[5:7]
+
+    run_list = []
+    for i,idx in enumerate(run_order_df.index):
+        sbj2 = run_order_df.loc[idx]['subject'][3:5]
+        run  = run_order_df.loc[idx]['run']
+        if sbj1 == sbj2:
+            run_list.append(run)
+    
+    run_str = "####Run Order:"
+    
+    for run in run_list:
+        if run == run_list[-1]:
+            run_str = run_str+' '+run
+        else:
+            run_str = run_str+' '+run+','
+    
+    output = pn.pane.Markdown(run_str,width=500)
+    return output
+
+
 # Add a text box to describe run
 @pn.depends(RunSelect.param.value)
 def run_description(RUN):
     """
     This function displays a markdown panel with a discription of the run being displayed.
     """
+    
     width = 500 # Markdown panel width
     if RUN == 'All':
         output = pn.pane.Markdown("""
@@ -419,14 +461,15 @@ def run_description(RUN):
 @pn.depends(SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value)
 def dist_mot_trace(SBJ,RUN,WL_sec):
     """
-    Plot the distance matrix and motion trace in line with each other
+    Plot the distance matrix, motion trace, and sleep stage trace in line with each other
     """
     output = (distance_matrix(SBJ,RUN,WL_sec)+motion_trace(SBJ,RUN,WL_sec)+sleep_stage_trace(SBJ,RUN,WL_sec)).cols(1)
     return output
 
 
 # Display widgets player and plots
-dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),run_description),
+dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),
+                        pn.Column(run_order,run_description)),
           pn.Row(plot_embed3d,dist_mot_trace)).servable()
 
 # +
@@ -439,11 +482,10 @@ dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, Co
 #    return pn.pane.Markdown("Player Value: "+str(value),width=100)
 
 #dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row(player_val,run_val),plot_embed3d)
+# -
 
-# +
 # Start gui
-#dash_server = dash.show(port=port_tunnel, open=False)
+dash_server = dash.show(port=port_tunnel, open=False)
 
-# +
 # Stop gui
-#dash_server.stop()
+dash_server.stop()
