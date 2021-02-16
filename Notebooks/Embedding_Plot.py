@@ -73,18 +73,16 @@ RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
 ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
+# Updates available runs given SubjSelect value
 @pn.depends(SubjSelect.param.value, watch=True)
 def update_run(SBJ):
-    runs = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))]
-    RunSelect.options = runs
-    RunSelect.value = runs[0]
-
-# Updates available runs given SubjSelect value
-#def update_run(event):
-#    pre_select_val = RunSelect.param.value
-#    RunSelect.options = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))]
-#    RunSelect.param.value = [SubDict[event.new][i][0] for i in range(0,len(SubDict[event.new]))][0]
-#SubjSelect.param.watch(update_run,'value')
+    pre_select_val = RunSelect.value # Last run value
+    runs = [SubDict[SBJ][i][0] for i in range(0,len(SubDict[SBJ]))] # List of runs for that subject
+    if pre_select_val not in runs: # If last run is NOT a valid run for that subject
+        RunSelect.options = runs # New options for runs
+        RunSelect.value = runs[0] # First value of run list
+    else: # If run is a valid run for that subject
+        RunSelect.value = pre_select_val # Same run as last run value
 
 
 # -
@@ -473,19 +471,9 @@ dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, Co
           pn.Row(plot_embed3d,dist_mot_trace)).servable()
 
 # +
-#@pn.depends(SubjSelect.param.value,RunSelect.param.value)
-#def run_val(SBJ,RUN):
-#    return pn.pane.Markdown("Run: "+str(RUN),width=100)
-
-#@pn.depends(player.param.value)
-#def player_val(value):
-#    return pn.pane.Markdown("Player Value: "+str(value),width=100)
-
-#dash = pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player,pn.Row(player_val,run_val),plot_embed3d)
-# -
-
 # Start gui
-dash_server = dash.show(port=port_tunnel, open=False)
+#dash_server = dash.show(port=port_tunnel, open=False)
 
+# +
 # Stop gui
-dash_server.stop()
+#dash_server.stop()
