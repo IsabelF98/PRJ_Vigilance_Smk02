@@ -30,7 +30,7 @@ echo "++ INFO: Create SPC version of the minimally pre-processed data..."
 
 # Extract a series of presentative time series
 3dmaskave -quiet -mask ${ROI_4V_PATH} D03_4thVent/${SBJ}.${RUN_NAM}.volreg.scale.nii.gz      > D03_4thVent/rm.${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D
-3dDetrend -prefix - -polort 3 D03_4thVent/rm.${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D\' > D03_4thVent/${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D
+1dBandpass 0.009 .25 D03_4thVent/rm.${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D > D03_4thVent/${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D
 rm D03_4thVent/rm.${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D
 
 echo "++ INFO: Finished script. Output ${PRJDIR}/PrcsData/${SBJ}/D03_4thVent/${SBJ}.${RUN_NAM}.volreg.Signal.V4.1D"

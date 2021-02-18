@@ -13,18 +13,18 @@
 #     name: vigilance
 # ---
 
-# # SWARM File for Extracting 4th Ventrical Signal
+# ## SWARM File for Extracting 4th Ventrical Signal
 #
-# This notebook creates a the SC02_extract_signal.SWARM.sh to execute SC02_extract_signal.sh for each subject and run.
+# This notebook creates the SC02_extract_signal.SWARM.sh to execute SC02_extract_signal.sh for each subject and run.
 
 import os
 import os.path as osp
 import pandas as pd
 
+# +
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
 sub_DF = pd.read_pickle(PRJDIR+'4thVent/utils/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
 
-# +
 SubDict = {} # Empty dictionary
 
 # Appends subject and run (including all runs) to dictionary
@@ -38,11 +38,12 @@ for i,idx in enumerate(sub_DF.index):
 
 # List of subjects
 SubjectList = list(SubDict.keys())
+# -
 
-# +
 # Create logs directory if doesnt already exist
 os.system('if [ ! -d SC02_extract_signal.logs ]; then mkdir SC02_extract_signal.logs; fi')
 
+# +
 # Call to swarm line
 os.system('echo "#swarm -f ./SC02_extract_signal.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./SC02_extract_signal.logs; watch -n 30 squeue -u fernandezis" > ./SC02_extract_signal.SWARM.sh')
 
