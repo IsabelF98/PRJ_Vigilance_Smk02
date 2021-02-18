@@ -10,7 +10,7 @@ Figures/WhiteMatter/
 Scripts/SC02_Preproc_fMRI.CreateSwarm.bck.sh
 Notebooks/utils/subject_run.txt
 *.ipynb
-Notebooks/utils/valid_run_df.pkl
+*/utils/valid_run_df.pkl
 Atlases/
 Notebooks/javier_plot.py
 Notebooks/sleep_stage_duration.csv
