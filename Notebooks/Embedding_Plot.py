@@ -69,7 +69,7 @@ for sbj in SubjectList:
 # +
 # Widgets for selecting subject run and window legth
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0],width=200) # Select subject
-RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))],width=200) # Select run for chosen subject
+RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))],value=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))][0],width=200) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
 ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
@@ -82,6 +82,7 @@ def update_run(SBJ):
         RunSelect.options = runs # New options for runs
         RunSelect.value = runs[0] # First value of run list
     else: # If run is a valid run for that subject
+        RunSelect.options = runs # New options for runs
         RunSelect.value = pre_select_val # Same run as last run value
 
 
@@ -230,10 +231,10 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
         output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color='Motion',color_continuous_scale='jet',
                                range_color=[0,LE3D_df['Motion'].max()],range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,
                                height=600,opacity=0.8)
-        
+    
     output = output.update_traces(marker=dict(size=5,line=dict(width=0))) # No outline on points
 
-    output = output.update_layout(legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1)) # Change legend position of data to top horizontal
+    output = output.update_layout(legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1),uirevision=True) # Change legend position of data to top horizontal
     
     return pn.pane.Plotly(output) # Return plot in panel plotly format (solves color issue!)
 
@@ -322,7 +323,7 @@ def distance_matrix(SBJ,RUN,WL_sec):
     
     # Plot heat map using hv.Image
     # Set bounds to (-0.5,-0.5,num_win-0.5,num_win-0.5) to corespond with acurate windows
-    plot = hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',ylabel='Time [Window ID]')
+    plot = hv.Image(dist_array,bounds=(-0.5,-0.5,num_win-0.5,num_win-0.5)).opts(cmap='jet',colorbar=True,ylabel='Time [Window ID]')
     
     # Overlay segment plots and heat map
     output = (plot*segment_plot).opts(width=600,height=390)
