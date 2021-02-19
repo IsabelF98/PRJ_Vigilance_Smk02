@@ -12,7 +12,6 @@ subjects=(`ls ${ORIG_DATA_DIR} | tr -s '\n' ' '`) # List of subject
 subjects=("${subjects[@]/'README'}")   # The subject directory contains a README file (not a subject ID)
 subjects=("${subjects[@]/'dataset_description.json'}")   # The subject directory contains a json file (not a subject ID)
 subjects=("${subjects[@]/'sub-S21'}") # This subject had bad motion and will not be used.
-subjects=("${subjects[@]/'sub-S11'}") # RE DO WHEN SUB 11 IS DONE!!!!!
 num_subjects=`echo "${#subjects[@]} -1" | bc -l` # number of subjects
 echo "Subjects: ${subjects[@]}" # Print subjects being processed
 
