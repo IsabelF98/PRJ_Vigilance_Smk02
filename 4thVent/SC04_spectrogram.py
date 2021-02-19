@@ -69,8 +69,8 @@ def main(argv):
 
     #Inputs
     #======
-    RUND_Path  = osp.join(PRJDIR,SBJ,D03_4thVent)
-    roits_path = osp.join(RUND_Path,'${SBJ}.${RUN}.volreg.Signal.V4.1D'.format(SBJ=SBJ, RUN=RUN))
+    RUND_Path  = osp.join(PRJDIR,SBJ,'D03_4thVent')
+    roits_path = osp.join(RUND_Path,'{SBJ}.{RUN}.volreg.Signal.V4.1D'.format(SBJ=SBJ, RUN=RUN))
 
     print('++ Loading ROI timeseries into memory from [%s]' % roits_path)
     roits      = np.loadtxt(roits_path)
@@ -88,8 +88,8 @@ def main(argv):
 
     # Outputs
     # =======
-    SPECTROGRAM_FILE   = '${SBJ}.${RUN}.volreg.Signal.V4.Spectrogram.pkl'.format(SBJ=SBJ, RUN=RUN)
-    BANDLIMITED_FILE   = '${SBJ}.${RUN}.volreg.Signal.V4.Spectrogram_BandLimited.pkl'.format(SBJ=SBJ, RUN=RUN)
+    SPECTROGRAM_FILE   = '{SBJ}.{RUN}.volreg.Signal.V4.Spectrogram.pkl'.format(SBJ=SBJ, RUN=RUN)
+    BANDLIMITED_FILE   = '{SBJ}.{RUN}.volreg.Signal.V4.Spectrogram_BandLimited.pkl'.format(SBJ=SBJ, RUN=RUN)
     SPECTROGRAM_Path   = osp.join(RUND_Path,SPECTROGRAM_FILE)
     BANDLIMITED_Path   = osp.join(RUND_Path,BANDLIMITED_FILE)
 

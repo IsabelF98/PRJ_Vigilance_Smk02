@@ -39,8 +39,8 @@ def main(argv):
     print(' + Detrend       -->  %s'     % str(DETREND))
     print(' + Sampling Freq -->  %f Hz' % FS)
 
-    roits_path = osp.join(PRJDIR,SBJ,'D03_4thVent','${SBJ}.${RUN}.volreg.Signal.V4.1D'.format(SBJ=SBJ, RUN=RUN))
-    welch_path = osp.join(PRJDIR,SBJ,'D03_4thVent','${SBJ}.${RUN}.volreg.Signal.V4.welch.pkl'.format(SBJ=SBJ, RUN=RUN))
+    roits_path = osp.join(PRJDIR,SBJ,'D03_4thVent','{SBJ}.{RUN}.volreg.Signal.V4.1D'.format(SBJ=SBJ, RUN=RUN))
+    welch_path = osp.join(PRJDIR,SBJ,'D03_4thVent','{SBJ}.{RUN}.volreg.Signal.V4.welch.pkl'.format(SBJ=SBJ, RUN=RUN))
 
     # Load ROI Timeseries
     # ===================
