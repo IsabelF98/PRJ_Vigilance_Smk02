@@ -71,7 +71,7 @@ for sbj in SubjectList:
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0],width=200) # Select subject
 RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))],value=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))][0],width=200) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
-ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','mean FD'],width=200) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 @pn.depends(SubjSelect.param.value, watch=True)
@@ -228,8 +228,8 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
    
     # Plot 3D with coloring by motion (average framewise displacment over each window)
     if COLOR == 'Motion':
-        output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color='Motion',color_continuous_scale='jet',
-                               range_color=[0,LE3D_df['Motion'].max()],range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,
+        output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color='mean FD',color_continuous_scale='jet',
+                               range_color=[0,LE3D_df['mean FD'].max()],range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,
                                height=600,opacity=0.8)
     
     output = output.update_traces(marker=dict(size=5,line=dict(width=0))) # No outline on points
@@ -351,7 +351,8 @@ def motion_trace(SBJ,RUN,WL_sec):
         xlim=(-10,LE3D_df.shape[0])
     
     #Plot the Framewise Displacment over windows
-    output = hv.Curve(LE3D_df,vdims=['Motion'],kdims=['Time [Window ID]']).opts(xlabel='Time [Window ID]',ylabel='Framewise Disp.',width=600,height=150,xlim=xlim,ylim=(0,1))
+    output = hv.Curve(LE3D_df,vdims=['mean FD'],kdims=['Time [Window ID]']).opts(xlabel='Time [Window ID]',ylabel='Framewise Disp.',
+                                                                                 width=600,height=150,xlim=xlim,ylim=(0,1))
     return output
 
 

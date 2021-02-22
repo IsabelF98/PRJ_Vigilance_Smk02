@@ -54,7 +54,7 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     The fuction returns a pandas data frame of the data.
     """
     PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
-    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','Run','Sleep Value','Sleep Stage','Motion','label']) # Empty data frame with colunm names
+    LE3D_df      = pd.DataFrame(columns=['x','y','z','x_norm','y_norm','z_norm','Run','Sleep Value','Sleep Stage','mean FD','label']) # Empty data frame with colunm names
     LE3D_df['x'] = se_X[:,0] # x values for each window
     LE3D_df['y'] = se_X[:,1] # y values for each window
     LE3D_df['z'] = se_X[:,2] # z values for each window
@@ -130,21 +130,19 @@ def lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max):
     
     # Motion-based data
     # -----------------
-    mot_temp      = pd.DataFrame(columns=['Framewise Displacement']) # Temporary data frame to organized data by motion
-    mot_file_path = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','motion_deriv.1D') # Path to derivative motion data for subject
-    temp_mot_df   = pd.read_csv(mot_file_path,sep=' ',header=None,names=['trans_dx','trans_dy','trans_dz','rot_dx','rot_dy','rot_dz']) # Load derivative motion data for subject
+    FD_win_df    = pd.DataFrame(columns=['Framewise Displacement']) # Temporary data frame of mean FD for window
+    FD_file_path = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','framewise_displacement.1D') # Path to FD data for subject
+    temp_FD_df   = pd.read_csv(FD_file_path,sep=' ') # Load FD data
     if RUN != 'All': # If single run slected choose motion data for that run
-        mot_df = pd.DataFrame(temp_mot_df.loc[tp_min:tp_max]).reset_index(drop = True)
+        FD_df = pd.DataFrame(temp_FD_df.loc[tp_min:tp_max]).reset_index(drop = True)
     else: # If all runs selected load whole motion data
-        mot_df = pd.DataFrame(temp_mot_df)
-    # 1. Calculate framewise displacement for each TR and save a new column in mot_df called "FD"
-    mot_df['FD'] = abs(mot_df['trans_dx']) + abs(mot_df['trans_dy']) + abs(mot_df['trans_dz']) + abs(np.deg2rad(mot_df['rot_dx'])*50) + abs(np.deg2rad(mot_df['rot_dy'])*50) + abs(np.deg2rad(mot_df['rot_dz'])*50)
-    # 2. The framewise displacement for each window is found by calculating the mean for that windows window length.
+        FD_df = temp_FD_df
+    # The framewise displacement for each window is found by calculating the mean for that windows window length.
     for i in range(0,TIME-WL_trs+1): # Iterate through number of windows for given data (Number_of_TRs - Number_of_TRs_per_window + 1)
-        mot_array = np.array([x for x in mot_df.loc[i:i+(WL_trs-1), 'FD']]) # Numpy array of values pertaining to window
-        mot_mean  = np.nanmean(mot_array) # Calculate mean of array using np.nanmean() which ignores NaN values
-        mot_temp.loc[i, 'Framewise Displacement'] = mot_mean # Asighn mean to window in mot_temp data frame
-    LE3D_df['Motion'] = mot_temp['Framewise Displacement'] # Add motion data to LE3D_df
+        FD_array = np.array([x for x in FD_df.loc[i:i+(WL_trs-1), 'FD']]) # Numpy array of values pertaining to window
+        FD_mean  = np.nanmean(FD_array) # Calculate mean of array using np.nanmean() which ignores NaN values
+        FD_win_df.loc[i, 'Framewise Displacement'] = FD_mean # Asighn mean to window in mot_temp data frame
+    LE3D_df['mean FD'] = FD_win_df['Framewise Displacement'] # Add motion data to LE3D_df
     
     # Add Window Names to LE3D_df
     LE3D_df['label'] = winInfo['winNames']
