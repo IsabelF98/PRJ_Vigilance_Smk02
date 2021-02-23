@@ -71,7 +71,7 @@ for sbj in SubjectList:
 SubjSelect   = pn.widgets.Select(name='Select Subject', options=SubjectList, value=SubjectList[0],width=200) # Select subject
 RunSelect    = pn.widgets.Select(name='Select Run', options=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))],value=[SubDict[SubjSelect.value][i][0] for i in range(0,len(SubDict[SubjSelect.value]))][0],width=200) # Select run for chosen subject
 WindowSelect = pn.widgets.Select(name='Select Window Length (in seconds)', options=[30,46,60],width=200) # Select window lenght
-ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','mean FD'],width=200) # Select color setting for plot
+ColorSelect  = pn.widgets.Select(name='Select Color Option', options=['No Color','Time/Run','Sleep','Motion'],width=200) # Select color setting for plot
 
 # Updates available runs given SubjSelect value
 @pn.depends(SubjSelect.param.value, watch=True)
