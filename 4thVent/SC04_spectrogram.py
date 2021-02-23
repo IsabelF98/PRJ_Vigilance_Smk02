@@ -35,9 +35,9 @@ def generate_sleep_psd(f,t,Sxx,SleepBand_BotFreq=0.03,SleepBand_TopFreq=0.07):
 def main(argv):
     SBJ     = ''
     RUN     = ''
-    WIN_LENGTH  = 60
-    WIN_OVERLAP = 59
-    NFFT        = 64
+    WIN_LENGTH  = 30
+    WIN_OVERLAP = 29
+    NFFT        = 32
     SCALING     = 'density'
     DETREND     = 'linear'
     FS          = 1/2 # Sampling Frequency 1/TR
