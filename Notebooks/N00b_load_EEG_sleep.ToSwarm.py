@@ -6,7 +6,7 @@ import os.path as osp
 
 DATADIR = '/data/SFIM_Vigilance/Data/' # Path to data directory
 PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
-EEG_csv_file = 'all_subs_all_EEG_metrics_continuous_epochs_0_4_02-08-2021.csv' # EEG file of sleep staging data
+EEG_csv_file = 'all_subs_all_EEG_metrics_continuous_epochs_0_4_03-02-2021.csv' # EEG file of sleep staging data
 
 EEG_sleep_df = pd.read_csv(DATADIR+EEG_csv_file,sep=',') # Load data frame of original EEG sleep staging data
 
