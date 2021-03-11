@@ -334,7 +334,7 @@ for SBJ in sub_list:
         temp_df = count_duration(sleep_df)
         sleep_hist_df = sleep_hist_df.append(temp_df,ignore_index=True)
 
-sleep_hist_df.to_csv(PRJDIR+'Notebooks/sleep_stage_duration.csv',index=False)
+sleep_hist_df.to_csv(PRJDIR+'PrcsData/all/sleep_stage_duration.csv',index=False)
 
 plot_df = sleep_hist_df[['Stage','Duration [TR]']].copy()
 plot_df = plot_df.set_index(['Stage'])
