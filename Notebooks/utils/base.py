@@ -22,15 +22,16 @@ def plot_fc_matrix(ts,labels, reorder='single',width=400,cmap='RdBu_r'):
     hv.heatmap with the connectivity matrix
     '''
     mat     = ts.corr().values
-    linkage_matrix  = linkage(mat, method=reorder)
-    ordered_linkage = optimal_leaf_ordering(linkage_matrix, mat)
-    index           = leaves_list(ordered_linkage)
-    # make sure labels is an ndarray and copy it
-    labels = np.array(labels).copy()
-    mat    = mat.copy()
-    # and reorder labels and matrix
-    labels = labels[index].tolist()
-    mat    = mat[index, :][:, index]
+    if reorder != False:
+        linkage_matrix  = linkage(mat, method=reorder)
+        ordered_linkage = optimal_leaf_ordering(linkage_matrix, mat)
+        index           = leaves_list(ordered_linkage)
+        # make sure labels is an ndarray and copy it
+        labels = np.array(labels).copy()
+        mat    = mat.copy()
+        # and reorder labels and matrix
+        labels = labels[index].tolist()
+        mat    = mat[index, :][:, index]
     fc_matrix = pd.DataFrame(mat, index=labels,columns=labels)
     return fc_matrix.hvplot.heatmap(cmap=cmap,aspect='square').redim.range(value=(-1,1)).opts(xrotation=45, frame_width=width)
 
