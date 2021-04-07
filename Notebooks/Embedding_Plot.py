@@ -214,8 +214,8 @@ def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
                                    range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,height=600,opacity=0.7)
         else: # All the runs concatinated
             # color_map defines the colors coresponding to each run
-            color_map = {'SleepAscending':'red','SleepDescending':'orange','SleepRSER':'yellow','WakeAscending':'purple',
-                                      'WakeDescending':'blue','WakeRSER':'green','Inbetween Runs':'gray'}
+            color_map = {'SleepAscending':'#DE3163','SleepDescending':'#FF7F50','SleepRSER':'#FFBF00','WakeAscending':'#6495ED',
+                                      'WakeDescending':'#40E0D0','WakeRSER':'#CCCCFF','Inbetween Runs':'gray'}
             output = px.scatter_3d(LE3D_df[0:max_win],x='x_norm',y='y_norm',z='z_norm',color='Run',color_discrete_map=color_map,
                                    range_x=[-1,1],range_y=[-1,1],range_z=[-1,1],width=700,height=600,opacity=0.7)
     
@@ -308,7 +308,8 @@ def distance_matrix(SBJ,RUN,WL_sec):
         run_segments_df['end_event']   = -50
         
         # Color key for runs
-        run_color_map = {'SleepAscending':'red','SleepDescending':'orange','SleepRSER':'yellow','WakeAscending':'purple','WakeDescending':'blue','WakeRSER':'green','Inbetween Runs':'gray'}
+        run_color_map = {'SleepAscending':'#DE3163','SleepDescending':'#FF7F50','SleepRSER':'#FFBF00','WakeAscending':'#6495ED',
+                         'WakeDescending':'#40E0D0','WakeRSER':'#CCCCFF','Inbetween Runs':'gray'}
         
         # Plot of run segements along the x and y axis
         # Range is from (-80, num_win) so we have space to display both segments
@@ -472,9 +473,8 @@ dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, Co
                         pn.Column(run_order,run_description)),
           pn.Row(plot_embed3d,dist_mot_trace)).servable()
 
-# +
 # Start gui
-#dash_server = dash.show(port=port_tunnel, open=False)
+dash_server = dash.show(port=port_tunnel, open=False)
 
 # +
 # Stop gui
