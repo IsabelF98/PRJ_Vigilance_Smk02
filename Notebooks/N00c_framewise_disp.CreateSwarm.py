@@ -50,4 +50,4 @@ SubjectList = list(SubDict.keys())
 os.system('if [ ! -d N00c_framewise_disp.logs ]; then mkdir N00c_framewise_disp.logs; fi') # Create logs directory if doesnt already exist
 os.system('echo "#swarm -f ./N00c_framewise_disp.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N00c_framewise_disp.logs; watch -n 30 squeue -u fernandezis" > ./N00c_framewise_disp.SWARM.sh')
 for sbj in SubjectList:
-    os.system('echo "python N00c_framewise_disp.ToSwarm.py {sbj}" >> ./N00c_framewise_disp.SWARM.sh'.format(sbj=sbj))
+    os.system('echo "./N00c_framewise_disp.ToSwarm.py -sbj {sbj}" >> ./N00c_framewise_disp.SWARM.sh'.format(sbj=sbj))

@@ -476,6 +476,5 @@ dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, Co
 # Start gui
 dash_server = dash.show(port=port_tunnel, open=False)
 
-# +
 # Stop gui
-#dash_server.stop()
+dash_server.stop()

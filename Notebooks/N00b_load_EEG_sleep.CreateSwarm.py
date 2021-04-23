@@ -51,4 +51,4 @@ os.system('if [ ! -d N00b_load_EEG_sleep.logs ]; then mkdir N00b_load_EEG_sleep.
 os.system('echo "#swarm -f ./N00b_load_EEG_sleep.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdir ./N00b_load_EEG_sleep.logs; watch -n 30 squeue -u fernandezis" > ./N00b_load_EEG_sleep.SWARM.sh')
 for sbj in SubjectList:
     for run in SubDict[sbj]:
-        os.system('echo "python N00b_load_EEG_sleep.ToSwarm.py {sbj} {run}" >> ./N00b_load_EEG_sleep.SWARM.sh'.format(sbj=sbj,run=run))
+        os.system('echo "./N00b_load_EEG_sleep.ToSwarm.py -sbj {sbj} -run {run}" >> ./N00b_load_EEG_sleep.SWARM.sh'.format(sbj=sbj,run=run))

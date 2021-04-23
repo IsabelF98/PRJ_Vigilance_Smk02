@@ -58,4 +58,4 @@ os.system('echo "#swarm -f ./N02_Sleep_Segmenting.SWARM.sh -g 32 -t 32 --time 5:
 for sbj in SubjectList:
     for run in SubDict[sbj]:
         for win in WinList:
-            os.system('echo "python N02_Sleep_Segmenting.ToSwarm.py {sbj} {run} {win}" >> ./N02_Sleep_Segmenting.SWARM.sh'.format(sbj=sbj,run=run,win=win))
+            os.system('echo "./N02_Sleep_Segmenting.ToSwarm.py -sbj {sbj} -run {run} -wl {win}" >> ./N02_Sleep_Segmenting.SWARM.sh'.format(sbj=sbj,run=run,win=win))

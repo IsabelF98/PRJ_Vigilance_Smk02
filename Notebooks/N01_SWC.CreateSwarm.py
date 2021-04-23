@@ -55,4 +55,4 @@ os.system('echo "#swarm -f ./N01_SWC.SWARM.sh -g 32 -t 32 --time 5:00:00 --logdi
 for sbj in SubjectList:
     for run in SubDict[sbj]:
         for win in WinList:
-            os.system('echo "python N01_SWC.ToSwarm.py {sbj} {run} {win}" >> ./N01_SWC.SWARM.sh'.format(sbj=sbj,run=run,win=win))
+            os.system('echo "./N01_SWC.ToSwarm.py -sbj {sbj} -run {run} -wl {win}" >> ./N01_SWC.SWARM.sh'.format(sbj=sbj,run=run,win=win))
