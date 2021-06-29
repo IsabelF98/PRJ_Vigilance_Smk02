@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.7.1
+#       jupytext_version: 1.9.1
 #   kernelspec:
-#     display_name: Vigilance
+#     display_name: Vigilance Project
 #     language: python
 #     name: vigilance
 # ---
@@ -65,6 +65,11 @@ SubjectList = list(SubDict.keys()) # list of subjects
 # Add 'All' option to subject diction for each subject. 'All' meaning the concatinated data
 for sbj in SubjectList:
     SubDict[sbj].append(('All',sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj])))))
+# -
+
+Xdim_select = pn.widgets.IntSlider(name='X Dimension',value=1,start=1, end=10, step=1)
+Ydim_select = pn.widgets.IntSlider(name='Y Dimension',value=2,start=1, end=10, step=1)
+Zdim_select = pn.widgets.IntSlider(name='Z Dimension',value=3,start=1, end=10, step=1)
 
 # +
 # Widgets for selecting subject run and window legth
@@ -189,8 +194,9 @@ def update_player(SBJ,RUN,WL_sec):
 # -
 
 # Make function dependint on player, subject, run, and window length values
-@pn.depends(player.param.value,SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value,ColorSelect.param.value)
-def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR):
+@pn.depends(player.param.value,SubjSelect.param.value,RunSelect.param.value,WindowSelect.param.value,ColorSelect.param.value,
+            Xdim_select.param.value,Ydim_select.param.value,Zdim_select.param.value)
+def plot_embed3d(max_win,SBJ,RUN,WL_sec,COLOR,x_dim,y_dim,z_dim):
     """
     This function plots the embeddings on a 3D plot.
     To load the data load_data() fuction is called.
@@ -469,7 +475,7 @@ def dist_mot_trace(SBJ,RUN,WL_sec):
 
 
 # Display widgets player and plots
-dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),player),
+dash = pn.Column(pn.Row(pn.Column(pn.Row(SubjSelect, RunSelect, WindowSelect, ColorSelect),pn.Row(Xdim_select,Ydim_select,Zdim_select),player),
                         pn.Column(run_order,run_description)),
           pn.Row(plot_embed3d,dist_mot_trace)).servable()
 
