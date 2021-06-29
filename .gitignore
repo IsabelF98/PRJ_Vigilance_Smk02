@@ -4,6 +4,7 @@ PrcsData/
 TEST/
 *.logs
 *.SWARM.sh
+*SWARM.javier.sh
 Figures/CSF/
 Figures/TSNR/
 Figures/WhiteMatter/
@@ -14,3 +15,4 @@ Notebooks/utils/subject_run.txt
 Atlases/
 Notebooks/javier_plot.py
 Notebooks/sleep_stage_duration.csv
+Notebooks/utils/__pycache__/
