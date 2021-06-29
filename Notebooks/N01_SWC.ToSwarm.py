@@ -36,8 +36,11 @@ from holoviews import dim, opts
 hv.extension('bokeh')
 pn.extension()
 
+# =======================================================================================    
+# ================================ GLOBAL DEFINITIONS ===================================
+# =======================================================================================    
 seed = np.random.RandomState(seed=7) # Seed for embedding
-PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory
+PRJDIR = '/data/SFIM_Vigilance/PRJ_Vigilance_Smk02/' # Path to project directory, all relevan files for this project reside in this folder.
 sub_DF = pd.read_pickle(PRJDIR+'Notebooks/utils/valid_run_df.pkl') # Data frame of all subjects info for vaild runs
 
 # Dictionary of subject with valid runs
@@ -58,25 +61,34 @@ SubjectList = list(SubDict.keys()) # list of subjects
 # Add 'All' option to subject diction for each subject. 'All' meaning the concatinated data
 for sbj in SubjectList:
     SubDict[sbj].append(('All',sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj]))),0,sum(SubDict[sbj][i][1] for i in range(0,len(SubDict[sbj])))-1))
-    
+
+# =======================================================================================    
+# ==================================== END OF GLOBAL DEFINITIONS ========================
+# =======================================================================================    
+
+
+
+# =======================================================================================
+# ===================================  PRIMARY CODE =====================================
+# =======================================================================================
 def run(args):
     # Variables for running embeddings
-    SBJ                    = args.subject
-    RUN                    = args.run
-    WL_sec                 = int(args.wl)
-    TIME                   = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0]
-    tp_min                 = [SubDict[SBJ][i][2] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0]
-    tp_max                 = [SubDict[SBJ][i][3] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0]
-    atlas_name             = 'Craddock_T2Level_0200'
-    TR                     = 2.0
-    WS_trs                 = 1
-    WL_trs                 = int(WL_sec / TR)
-    dim_red_method         = 'PCA'
-    dim_red_method_percent = 97.5
-    le_num_dims            = 3
-    le_k_NN                = 100
+    SBJ                    = args.subject   # Subject ID
+    RUN                    = args.run       # Run ID
+    WL_sec                 = int(args.wl)   # Window Length (in seconds)
+    TIME                   = [SubDict[SBJ][i][1] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0] # Number of samples in this fMRI dataset
+    tp_min                 = [SubDict[SBJ][i][2] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0] # Start index for this run
+    tp_max                 = [SubDict[SBJ][i][3] for i in range(0,len(SubDict[SBJ])) if SubDict[SBJ][i][0] == RUN][0] # End index for this run
+    atlas_name             = 'Craddock_T2Level_0200' # Brain Parcellation (This identifies what ROI set was used)
+    TR                     = 2.0                     # Repetition Time (Hardcoded to the value for the data in this project)
+    WS_trs                 = 1                       # Window Step (Distance between suceesive windows in number of samples)
+    WL_trs                 = int(WL_sec / TR)        # Window Lenght in number of samples (i.e., trs in fMRI jargon)
+    dim_red_method         = 'PCA'                   # Pre-dimensionality reduction step (always PCA)
+    dim_red_method_percent = 97.5                    # Amount of variance to keep in the PCA step (always 97.5%)
+    le_num_dims            = 20                      # Final number of dimensions (always 3)
+    le_k_NN                = 100                     # K-Nearest Neighbours (for now hardcoded to 100, but this will also be selected in the GUI at a later point)
 
-    # Paths to input and output data
+    # Generate Paths to input and output data
     path_ts        = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI','errts.'+SBJ+'.'+atlas_name+'.wl'+str(WL_sec).zfill(3)+'s.fanaticor_ts.1D')
     path_outdir    = osp.join(PRJDIR,'PrcsData',SBJ,'D02_Preproc_fMRI')
     out_prefix     = SBJ+'_fanaticor_'+atlas_name+'_wl'+str(WL_sec).zfill(3)+'s_ws'+str(int(WS_trs*TR)).zfill(3)+'s_'+RUN
@@ -141,11 +153,12 @@ def run(args):
     se_X           = se.fit_transform(X_affinity.toarray())
     print ('++ INFO: Embedding Dimensions: %s' % str(se_X.shape))
     # Put the embeddings into a dataframe (for saving and plotting)
-    LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max)
+    LE3D_df = lapacian_dataframe(SubDict,se_X,winInfo,SBJ,RUN,TIME,WL_trs,tp_min,tp_max,le_num_dims)
     LE3D_df.to_pickle(out_lem_path)
     print ('++ INFO: Script Complete')
     
 def main():
+    # Parse input arguments
     parser=argparse.ArgumentParser(description="Compute embeddings for a given subject, run, and window length.")
     parser.add_argument("-sbj",help="subject name in sub-SXX format" ,dest="subject", type=str, required=True)
     parser.add_argument("-run",help="run name" ,dest="run", type=str, required=True)
