@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.7.1
+#       jupytext_version: 1.9.1
 #   kernelspec:
-#     display_name: Vigilance
+#     display_name: Vigilance Project
 #     language: python
 #     name: vigilance
 # ---
@@ -56,3 +56,17 @@ for sbj in SubjectList:
     for run in SubDict[sbj]:
         for win in WinList:
             os.system('echo "./N01_SWC.ToSwarm.py -sbj {sbj} -run {run} -wl {win}" >> ./N01_SWC.SWARM.sh'.format(sbj=sbj,run=run,win=win))
+
+# +
+# Creates N01_SWC.SWARM.sh file
+# -----------------------------
+
+os.system('if [ ! -d N01_SWC.logs ]; then mkdir N01_SWC.logs; fi') # Create logs directory if doesnt already exist
+os.system('echo "#swarm -f ./N01_SWC.SWARM.javier.sh -g 32 -t 32 --time 5:00:00 --logdir ./N01_SWC.logs; watch -n 30 squeue -u fernandezis" > ./N01_SWC.SWARM.javier.sh')
+for sbj in SubjectList:
+    for run in SubDict[sbj]:
+        for win in WinList:
+            os.system('echo "export SBJ={sbj} RUN={run} WL={win}; sh ./N01_SWC.ToSwarm.sh" >> ./N01_SWC.SWARM.javier.sh'.format(sbj=sbj,run=run,win=win))
+# -
+
+
